@@ -28,11 +28,14 @@ template<class T> struct SizedArray
 
 template<class T> struct TransformUnboundedArrays { using type = T; };
 
-template<class T> requires std::is_trivially_destructible<T>::value
-struct TransformUnboundedArrays<T[]> { using type = UnsizedArray<T>; };
-
-template<class T> requires (!std::is_trivially_destructible<T>::value)
-struct TransformUnboundedArrays<T[]> { using type = SizedArray<T>; };
+template<class T>
+struct TransformUnboundedArrays<T[]>
+{
+    using type = std::conditional_t< std::is_trivially_destructible<T>::value
+                                     , UnsizedArray<T>
+                                     , SizedArray<T>
+                                     >;
+};
 
 template<class T>
 struct ArrayPlaceHolder

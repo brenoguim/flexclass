@@ -6,7 +6,7 @@ include(cmake/Deploy.cmake)
 project(Flexclass CXX)
 
 #option(FLEXCLASS_BUILD_EXAMPLES "Whether to build the examples" ON)
-#option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
+option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
 
 set(FLEXCLASS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/flexclass")
 
@@ -27,13 +27,13 @@ set(FLEXCLASS_VERSION "0.1.0")
 
 message(STATUS "Configuring Flexclass ${FLEXCLASS_VERSION}")
 
-add_header_library(Flexclass "${FLEXCLASS_INCLUDE_DIR}/flexclass.hpp" "LICENSE")
-set_target_properties(Flexclass PROPERTIES
+add_header_library(flexclass "${FLEXCLASS_INCLUDE_DIR}/flexclass.hpp" "LICENSE")
+set_target_properties(flexclass PROPERTIES
     INTERFACE_LIB_VERSION ${FLEXCLASS_VERSION}
-    INTERFACE_COMPILE_FEATURES cxx_std_20
+    INTERFACE_COMPILE_FEATURES cxx_std_17
 )
 
-deploy_header_library(Flexclass)
+deploy_header_library(flexclass)
 
 #if(FLEXCLASS_BUILD_DOC)
 #    add_subdirectory(doc)
@@ -41,6 +41,7 @@ deploy_header_library(Flexclass)
 #if (FLEXCLASS_BUILD_EXAMPLES)
 #    add_subdirectory(example)
 #endif()
-#if(FLEXCLASS_BUILD_TESTS)
-#    add_subdirectory(test)
-#endif()
+if(FLEXCLASS_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
