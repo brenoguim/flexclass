@@ -27,9 +27,13 @@ template<class T> struct SizedArray
     T* const m_begin; T* const m_end;
 };
 
-template<class T> struct FloatingArray
+template<class T> struct alignas(alignof(T)) FloatingArray
 {
-    auto begin(std::size_t offset, void* derivedBegin) const { return static_cast<T*>(static_cast<void*>(static_cast<char*>(derivedBegin) + offset)); }
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
+    }
 };
 
 template<class T> struct TransformUnboundedArrays { using type = T; };
@@ -129,6 +133,8 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
   public:
     template<auto e> auto& get() { return std::get<e>(*this); }
     template<auto e> auto& get() const { return std::get<e>(*this); }
+
+    template<auto e> decltype(auto) begin() const { return std::get<e>(*this).begin(this); }
 
     template<class... Args>
     static auto niw(Args&&... args)

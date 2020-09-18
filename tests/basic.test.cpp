@@ -70,3 +70,19 @@ TEST_CASE( "Allocate and destroy but using a floating array", "[basic]" )
     CHECK(fc::alloc::s_allocdBytes == 0);
     CHECK(fc::alloc::s_freeCount == 1);
 }
+
+
+TEST_CASE( "Using Floating arrays", "[basic]" )
+{
+    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::FloatingArray<long>>
+    {
+        enum Members {Header, Data};
+        using FLC::FLC;
+    };
+
+    auto r = Message::niw('\0', 1000);
+
+    *r->begin<Message::Data>() = 1;
+
+    fc::deleet(r);
+}
