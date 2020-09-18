@@ -11,49 +11,10 @@
 namespace fc
 {
 
-template<class T> struct UnsizedArray
-{
-    operator T*() const { return m_begin; }
-    T* get() const { return m_begin; }
-    T* const m_begin;
-};
-
-template<class T> struct SizedArray
-{
-    using type = T;
-    auto begin() const { return m_begin; }
-    auto end() const { return m_end; }
-    auto size() const { return end() - begin(); }
-    T* const m_begin; T* const m_end;
-};
-
-template<class T> struct alignas(alignof(T)) AdjacentArray
-{
-    template<class Derived>
-    auto begin(const Derived* ptr) const
-    {
-        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
-    }
-};
-
-template<class T> struct TransformUnboundedArrays { using type = T; };
-
-template<class T>
-struct TransformUnboundedArrays<T[]>
-{
-    using type = std::conditional_t< std::is_trivially_destructible<T>::value
-                                     , UnsizedArray<T>
-                                     , SizedArray<T>
-                                     >;
-};
-
 template<class T>
 struct ArrayPlaceHolder
 {
     ArrayPlaceHolder(std::size_t size) : m_size(size) {}
-    operator UnsizedArray<T>() { return {begin()}; }
-    operator SizedArray<T>() { return {begin(), end()}; }
-    operator AdjacentArray<T>() { return {}; }
 
     void consume(void*& buf, std::size_t& space)
     {
@@ -80,6 +41,50 @@ struct ArrayPlaceHolder
 
     std::size_t m_size;
     void* m_ptr {nullptr};
+};
+
+
+template<class T> struct UnsizedArray
+{
+    UnsizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()) {}
+
+    operator T*() const { return m_begin; }
+    T* get() const { return m_begin; }
+    T* const m_begin;
+};
+
+template<class T> struct SizedArray
+{
+    SizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
+
+    using type = T;
+
+    auto begin() const { return m_begin; }
+    auto end() const { return m_end; }
+    auto size() const { return end() - begin(); }
+    T* const m_begin; T* const m_end;
+};
+
+template<class T> struct alignas(alignof(T)) AdjacentArray
+{
+    AdjacentArray(ArrayPlaceHolder<T>&&) {}
+
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
+    }
+};
+
+template<class T> struct TransformUnboundedArrays { using type = T; };
+
+template<class T>
+struct TransformUnboundedArrays<T[]>
+{
+    using type = std::conditional_t< std::is_trivially_destructible<T>::value
+                                     , UnsizedArray<T>
+                                     , SizedArray<T>
+                                     >;
 };
 
 template<class T> struct is_array_placeholder : std::false_type {};
