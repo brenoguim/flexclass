@@ -26,6 +26,11 @@ template<class T> struct SizedArray
     T* const m_begin; T* const m_end;
 };
 
+template<class T> struct FloatingArray
+{
+    auto begin(std::size_t offset, void* derivedBegin) const { return static_cast<T*>(static_cast<void*>(static_cast<char*>(derivedBegin) + offset)); }
+};
+
 template<class T> struct TransformUnboundedArrays { using type = T; };
 
 template<class T>
@@ -43,6 +48,7 @@ struct ArrayPlaceHolder
     ArrayPlaceHolder(std::size_t size) : m_size(size) {}
     operator UnsizedArray<T>() { return {begin()}; }
     operator SizedArray<T>() { return {begin(), end()}; }
+    operator FloatingArray<T>() { return {}; }
 
     void consume(void*& buf, std::size_t& space)
     {
@@ -84,6 +90,7 @@ template<class T> struct PreImplConverter { using type = T; };
 template<class T> struct PreImplConverter<T[]> { using type = ArrayPlaceHolder<T>; };
 template<class T> struct PreImplConverter<UnsizedArray<T>> { using type = ArrayPlaceHolder<T>; };
 template<class T> struct PreImplConverter<SizedArray<T>> { using type = ArrayPlaceHolder<T>; };
+template<class T> struct PreImplConverter<FloatingArray<T>> { using type = ArrayPlaceHolder<T>; };
 
 
 namespace detail
