@@ -54,3 +54,16 @@ TEST_CASE( "Floating array", "[sanitizer]" )
     auto r = Message::niw("SmallMsg", 1000);
     fc::deleet(r);
 }
+
+TEST_CASE( "Floating array char->long to verify alignment", "[sanitizer]" )
+{
+    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::FloatingArray<long>>
+    {
+        enum Members {Header, Data};
+        using FLC::FLC;
+    };
+
+    auto r = Message::niw('\0', 1000);
+    for (int i = 0; i < 1000; ++i) r->begin<Message::Data>()[i] = 1;
+    fc::deleet(r);
+}
