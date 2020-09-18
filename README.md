@@ -14,7 +14,9 @@ struct Message
 
 Message* makeMessage(std::string header, int dataSize)
 {
-    return new Message{std::move(header), std::make_unique<char[]>(dataSize)};
+    auto* m = new Message{std::move(header), std::make_unique<char[]>(dataSize)};
+    std::strcpy(m->m_data.get(), "Default message");
+    return m;
 }
 ```
 
@@ -41,7 +43,12 @@ struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
     using FLC::FLC;
 };
 
-Message* makeMessage(std::string header, int dataSize) { return Message::niw(std::move(header), dataSize); }
+Message* makeMessage(std::string header, int dataSize)
+{
+    auto* m = Message::niw(std::move(header), dataSize);
+    std::strcpy(m->get<Message::Data>(), "Default message");
+    return m;
+}
 ```
 
 In this new version, members are declared as arguments of `fc::FlexibleLayoutClass`. To make member access convenient, it's also recommended to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
@@ -51,13 +58,9 @@ With that out of the way, this `Flexclass` will now inspect the argument list, f
 The layout of the `Message` is:
 ```
     [std::string] [char* const] [char] [char] [char] ... [char]
-                       |           ^   
-                       |-----------|
+                       |        ^   
+                       |________|
 ```
-
-Note: The library can avoid the trailing `char* const` in future versions, since it can be inferred that the array of `char` starts right after the `Message` object.
-
-# Customizations
 
 `Flexclass` not limited to one array, so the following declaration is perfectly valid:
 ```
@@ -67,24 +70,33 @@ struct Message : public fc::FlexibleLayoutClass<Message, int[], std::string, std
 Which will generate the following layout:
 
 ```
-                                                            _________________________________________________________________________
-                                                           |                                                                         |
-                                      _____________________|_________________________________________                                |
-                                     |                     |                                         |                               | 
-                                     |                     |                                         v                               v
+                                                            __________________________________________________________________________________
+                                                           |                                                                                  |
+                                      _____________________|______________________________________                                            |
+                                     |                     |                                      |                                           | 
+                                     |                     |                                      v                                           v
 [int* const] [std::string] [std::string* const] [std::string* const] [bool] [int] [int] ... [int] [std::string] [std::string] ... [std::string]
-     |                                                                       ^
-     |                                                                       |
-     |_______________________________________________________________________|
+     |                                                                      ^
+     |______________________________________________________________________|
 ```
 
-Notice that for `std::string[]` the layout will contain pointers to the first and last elements in the array. That's necessary so the destructors of all non-trivially-destructible objects are called when the `Message` is destroyed.
+Notice the layout contains the `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors of such objects when destroying the `Message`.
 
 Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::SizedArray` helper:
 
 ```
-struct Message : public fc::FlexibleLayoutClass<Message, fc::SizedArray<int>, std::string, std::string[], bool>
+struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::SizedArray<char>>
 ```
+
+In this case, there will be an `end` pointer to the `char` array too, giving the user methods `end()` and `size()`:
+```
+std::cout << "Size of the array is: " << m->get<Message::Data>().size() << '\n';
+
+// Print all chars as ints:
+for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
+```
+
+
 
 # TODO/Known issues
 - Avoid the pointer for trailing arrays
