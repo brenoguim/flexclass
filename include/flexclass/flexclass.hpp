@@ -11,6 +11,9 @@
 namespace fc
 {
 
+struct unsized {};
+struct sized {};
+
 template<class T>
 struct ArrayPlaceHolder
 {
@@ -48,6 +51,9 @@ template<class T> struct UnsizedArray
 {
     UnsizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()) {}
 
+    using type = T;
+    using fc_array_features = unsized;
+
     operator T*() const { return m_begin; }
     T* get() const { return m_begin; }
     T* const m_begin;
@@ -58,6 +64,7 @@ template<class T> struct SizedArray
     SizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
 
     using type = T;
+    using fc_array_features = sized;
 
     auto begin() const { return m_begin; }
     auto end() const { return m_end; }
@@ -68,6 +75,9 @@ template<class T> struct SizedArray
 template<class T> struct alignas(alignof(T)) AdjacentArray
 {
     AdjacentArray(ArrayPlaceHolder<T>&&) {}
+
+    using type = T;
+    using fc_array_features = unsized;
 
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -90,18 +100,17 @@ struct TransformUnboundedArrays<T[]>
 template<class T> struct is_array_placeholder : std::false_type {};
 template<class T> struct is_array_placeholder<ArrayPlaceHolder<T>> : std::true_type {};
 
-template<class T> struct is_unsized_array : std::false_type {};
-template<class T> struct is_unsized_array<UnsizedArray<T>> : std::true_type {};
+template<class T> struct void_ { using type = void; };
 
-template<class T> struct is_sized_array : std::false_type {};
-template<class T> struct is_sized_array<SizedArray<T>> : std::true_type {};
+template<class T, class = void> struct is_fc_array : std::false_type {};
+template<class T> struct is_fc_array<T, typename void_<typename T::fc_array_features>::type> : std::true_type
+{
+    using enable = T;
+};
 
-template<class T> struct PreImplConverter { using type = T; };
-template<class T> struct PreImplConverter<T[]> { using type = ArrayPlaceHolder<T>; };
-template<class T> struct PreImplConverter<UnsizedArray<T>> { using type = ArrayPlaceHolder<T>; };
-template<class T> struct PreImplConverter<SizedArray<T>> { using type = ArrayPlaceHolder<T>; };
-template<class T> struct PreImplConverter<AdjacentArray<T>> { using type = ArrayPlaceHolder<T>; };
-
+template<class T, class = void> struct PreImplConverter { using type = T; };
+template<class T> struct PreImplConverter<T[], void> { using type = ArrayPlaceHolder<T>; };
+template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type> { using type = ArrayPlaceHolder<typename T::type>; };
 
 namespace detail
 {
@@ -175,7 +184,7 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
         if (!p) return;
         for_each_in_tuple(*p,
             []<class U>(U& u) {
-                if constexpr (is_sized_array<std::remove_cv_t<U>>::value)
+                if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
                 if constexpr (!std::is_trivially_destructible<typename U::type>::value)
                 {
                     std::destroy(u.begin(), u.end());
