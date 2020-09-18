@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.9)
 include(cmake/Deploy.cmake)
 #include(cmake/Test.cmake)
 
+#set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+#set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
 project(Flexclass CXX)
 
 #option(FLEXCLASS_BUILD_EXAMPLES "Whether to build the examples" ON)

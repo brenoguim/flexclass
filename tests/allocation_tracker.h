@@ -29,7 +29,7 @@ template<class Fn>
 decltype(auto) track(const Fn& fn)
 {
     startTracking();
-    finally f(endTracking);
+    finally<decltype(&endTracking)> f(endTracking);
     return fn();
 }
 

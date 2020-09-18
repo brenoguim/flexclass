@@ -70,39 +70,3 @@ TEST_CASE( "Allocate and destroy but using a floating array", "[basic]" )
     CHECK(fc::alloc::s_allocdBytes == 0);
     CHECK(fc::alloc::s_freeCount == 1);
 }
-
-TEST_CASE( "Default array", "[sanitizer]" )
-{
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
-    {
-        enum Members {Header, Data};
-        using FLC::FLC;
-    };
-
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
-}
-
-TEST_CASE( "SizedArray", "[basic]" )
-{
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::SizedArray<char>>
-    {
-        enum Members {Header, Data};
-        using FLC::FLC;
-    };
-
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
-}
-
-TEST_CASE( "Floating array", "[basic]" )
-{
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::FloatingArray<char>>
-    {
-        enum Members {Header, Data};
-        using FLC::FLC;
-    };
-
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
-}

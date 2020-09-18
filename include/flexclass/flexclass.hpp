@@ -20,6 +20,7 @@ template<class T> struct UnsizedArray
 
 template<class T> struct SizedArray
 {
+    using type = T;
     auto begin() const { return m_begin; }
     auto end() const { return m_end; }
     auto size() const { return end() - begin(); }
@@ -163,8 +164,11 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
         if (!p) return;
         for_each_in_tuple(*p,
             []<class U>(U& u) {
-                if constexpr (!std::is_trivially_destructible<U>::value)
+                if constexpr (is_sized_array<std::remove_cv_t<U>>::value)
+                if constexpr (!std::is_trivially_destructible<typename U::type>::value)
+                {
                     std::destroy(u.begin(), u.end());
+                }
             });
         p->~Derived();
         ::operator delete(const_cast<Derived*>(p));
