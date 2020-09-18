@@ -70,12 +70,12 @@ struct Message : public fc::FlexibleLayoutClass<Message, int[], std::string, std
 Which will generate the following layout:
 
 ```
-                                                            __________________________________________________________________________________
-                                                           |                                                                                  |
-                                      _____________________|______________________________________                                            |
-                                     |                     |                                      |                                           | 
-                                     |                     |                                      v                                           v
-[int* const] [std::string] [std::string* const] [std::string* const] [bool] [int] [int] ... [int] [std::string] [std::string] ... [std::string]
+                                                            ______________________________________________________________
+                                                           |                                                              |
+                                      _____________________|________________________________                              |
+                                     |                     |                                |                             | 
+                                     |                     |                                v                             v
+[int* const] [std::string] [std::string* const] [std::string* const] [bool] [int] ... [int] [std::string] ... [std::string]
      |                                                                      ^
      |______________________________________________________________________|
 ```
