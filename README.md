@@ -20,7 +20,7 @@ Message* msgFactory(std::string header, int dataSize)
 }
 ```
 
-In this scenario, everytime `makeMessage` is called two allocations will occur:
+In this scenario, everytime `msgFactory` is called two allocations will occur:
 - One for the `m_data` field containing the data
 - One for the `Message` object itself
 
