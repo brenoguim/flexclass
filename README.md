@@ -96,11 +96,63 @@ std::cout << "Size of the array is: " << m->get<Message::Data>().size() << '\n';
 for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 ```
 
+# Feature summary
+
+- `SizedArray<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
+- `UnsizedArray<T>` requests a pointer to just the `begin` of the array (cost: 1 pointer)
+- `AdjacentArray<T>` is like `UnsizedArray<T>` but infers the `begin` to be the first array. (cost: 0 pointers)
+- `T[]` will translate to `fc::SizedArray<T>` if `T` is non-trivially-destructible and `fc::UnsizedArray<T>` otherwise
+
+# Cool Applications
+
+## Shared array
+
+A shared array implementation needs a reference counter and the data (in this case an array). So it can be modeled as:
+
+```
+template<class T> class SharedArray;
+template<class T>
+class SharedArray<T[]>
+{
+    using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
+    enum Members {RefCount, Data};
+  public:
+    /* Interesting public API */
+    SharedArray make(std::size_t len) { return Impl::niw(/*num references*/1, len); }
+    
+    decltype(auto) operator[](std::size_t i) { return m_data->get<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) const { return m_data->get<Data>()[i]; }
+
+    /* Boilerplate */
+    SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
+    SharedArray(const SharedArray& other) { decr(); m_data = other.m_data; incr(); }
+    SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); }
+    SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); }
+    ~SharedArray() { decr() }
+  private:
+    void incr() { m_data->get<RefCount>()++; }
+    bool decr() { if (m_data && m_data->get<RefCount>()-- == 1) Impl::deleet(m_data); }
+    Impl* m_data {nullptr};
+}
+```
+todo: check this implementation.
+
+Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
+```
+    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, unsigned, T[]>;
+    enum Members { RefCount, Size, Data };
+```
+
+
+
 
 
 # TODO/Known issues
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
-    - The obvious example is the first declared array in the class. It can be assumed it will always sit right after the class object itself.
+- Add check that there is only one `AdjacentArray`
+- Automatically infer `AdjacentArray` for the first `T[]` in the class
+- Offer a sized flavor of `AdjacentArray` for non-trivially-destructible types
+- move all examples to be compiled
 - All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
 - Should this class try to interoperate with `operator new` and `operator delete`?
 - Add RAII wrapper
