@@ -101,6 +101,7 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 # TODO/Known issues
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
     - The obvious example is the first declared array in the class. It can be assumed it will always sit right after the class object itself.
+- All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
 - Should this class try to interoperate with `operator new` and `operator delete`?
 - Add RAII wrapper
 
