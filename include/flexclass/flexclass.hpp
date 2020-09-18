@@ -52,10 +52,11 @@ template<class T> struct UnsizedArray
     UnsizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()) {}
 
     using type = T;
-    using fc_array_features = unsized;
+    using fc_array_kind = unsized;
 
     operator T*() const { return m_begin; }
     T* get() const { return m_begin; }
+
     T* const m_begin;
 };
 
@@ -64,12 +65,14 @@ template<class T> struct SizedArray
     SizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
 
     using type = T;
-    using fc_array_features = sized;
+    using fc_array_kind = sized;
 
     auto begin() const { return m_begin; }
     auto end() const { return m_end; }
     auto size() const { return end() - begin(); }
-    T* const m_begin; T* const m_end;
+
+    T* const m_begin;
+    T* const m_end;
 };
 
 template<class T> struct alignas(alignof(T)) AdjacentArray
@@ -77,7 +80,7 @@ template<class T> struct alignas(alignof(T)) AdjacentArray
     AdjacentArray(ArrayPlaceHolder<T>&&) {}
 
     using type = T;
-    using fc_array_features = unsized;
+    using fc_array_kind = unsized;
 
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -103,14 +106,15 @@ template<class T> struct is_array_placeholder<ArrayPlaceHolder<T>> : std::true_t
 template<class T> struct void_ { using type = void; };
 
 template<class T, class = void> struct is_fc_array : std::false_type {};
-template<class T> struct is_fc_array<T, typename void_<typename T::fc_array_features>::type> : std::true_type
+template<class T> struct is_fc_array<T, typename void_<typename T::fc_array_kind>::type> : std::true_type
 {
     using enable = T;
 };
 
 template<class T, class = void> struct PreImplConverter { using type = T; };
 template<class T> struct PreImplConverter<T[], void> { using type = ArrayPlaceHolder<T>; };
-template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type> { using type = ArrayPlaceHolder<typename T::type>; };
+template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
+{ using type = ArrayPlaceHolder<typename T::type>; };
 
 namespace detail
 {
