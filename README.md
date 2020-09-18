@@ -102,5 +102,6 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
     - The obvious example is the first declared array in the class. It can be assumed it will always sit right after the class object itself.
 - Should this class try to interoperate with `operator new` and `operator delete`?
+- Add RAII wrapper
 
 
