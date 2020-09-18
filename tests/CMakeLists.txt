@@ -1,6 +1,7 @@
 set(UNIT_TEST_LIST
     basic
-    sanitizers
+    asan
+    ubsan
 )
  
 add_library(test_infra
@@ -34,7 +35,12 @@ foreach(TARGET_NAME IN LISTS UNIT_TEST_LIST)
      
     add_test(
       NAME ${TARGET_NAME}
-      COMMAND ${TARGET_NAME} -o report.xml -r junit)
+      COMMAND env UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ASAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./${TARGET_NAME} -o report.xml -r junit)
 
 endforeach()
 
+target_link_options(ubsan PRIVATE -fsanitize=undefined)
+target_compile_options(ubsan PRIVATE -fsanitize=undefined)
+
+target_link_options(asan PRIVATE -fsanitize=address)
+target_compile_options(asan PRIVATE -fsanitize=address)
