@@ -27,7 +27,7 @@ template<class T> struct SizedArray
     T* const m_begin; T* const m_end;
 };
 
-template<class T> struct alignas(alignof(T)) FloatingArray
+template<class T> struct alignas(alignof(T)) AdjacentArray
 {
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -53,7 +53,7 @@ struct ArrayPlaceHolder
     ArrayPlaceHolder(std::size_t size) : m_size(size) {}
     operator UnsizedArray<T>() { return {begin()}; }
     operator SizedArray<T>() { return {begin(), end()}; }
-    operator FloatingArray<T>() { return {}; }
+    operator AdjacentArray<T>() { return {}; }
 
     void consume(void*& buf, std::size_t& space)
     {
@@ -95,7 +95,7 @@ template<class T> struct PreImplConverter { using type = T; };
 template<class T> struct PreImplConverter<T[]> { using type = ArrayPlaceHolder<T>; };
 template<class T> struct PreImplConverter<UnsizedArray<T>> { using type = ArrayPlaceHolder<T>; };
 template<class T> struct PreImplConverter<SizedArray<T>> { using type = ArrayPlaceHolder<T>; };
-template<class T> struct PreImplConverter<FloatingArray<T>> { using type = ArrayPlaceHolder<T>; };
+template<class T> struct PreImplConverter<AdjacentArray<T>> { using type = ArrayPlaceHolder<T>; };
 
 
 namespace detail

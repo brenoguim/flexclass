@@ -49,9 +49,9 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
     CHECK(fc::alloc::s_freeCount == 1);
 }
 
-TEST_CASE( "Allocate and destroy but using a floating array", "[basic]" )
+TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::FloatingArray<char>>
+    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -72,9 +72,9 @@ TEST_CASE( "Allocate and destroy but using a floating array", "[basic]" )
 }
 
 
-TEST_CASE( "Using Floating arrays", "[basic]" )
+TEST_CASE( "Using adjacent arrays", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::FloatingArray<long>>
+    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
         using FLC::FLC;

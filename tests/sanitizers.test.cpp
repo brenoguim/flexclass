@@ -43,9 +43,9 @@ TEST_CASE( "SizedArray", "[sanitizer]" )
     fc::deleet(r);
 }
 
-TEST_CASE( "Floating array", "[sanitizer]" )
+TEST_CASE( "Adjacent array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::FloatingArray<char>>
+    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -55,9 +55,9 @@ TEST_CASE( "Floating array", "[sanitizer]" )
     fc::deleet(r);
 }
 
-TEST_CASE( "Floating array char->long to verify alignment", "[sanitizer]" )
+TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::FloatingArray<long>>
+    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
