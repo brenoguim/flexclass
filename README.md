@@ -9,7 +9,7 @@ A library for structures with flexible layout.
 struct Message
 {
     std::string header;
-    std::unique<char[]> m_data;
+    std::unique_ptr<char[]> m_data;
 };
 
 Message* makeMessage(std::string header, int dataSize)
@@ -28,7 +28,7 @@ It is a rather common technique to group these allocations together. Somes examp
     - This array size is necessary to delete with `delete[]`
 - Many high-performance codebases (such as `LLVM`) will apply this technique to avoid allocations
 
-The goal of merging these allocations is to improve performance through less `malloc` calls, improving locallity and reducing fragmentation.
+The goal of merging these allocations is to improve performance through less `malloc` calls, improving locality and reducing fragmentation.
 
 # Enter Flexclass
 
