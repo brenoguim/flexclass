@@ -12,7 +12,7 @@ struct Message
     std::unique_ptr<char[]> m_data;
 };
 
-Message* makeMessage(std::string header, int dataSize)
+Message* msgFactory(std::string header, int dataSize)
 {
     auto* m = new Message{std::move(header), std::make_unique<char[]>(dataSize)};
     std::strcpy(m->m_data.get(), "Default message");
@@ -43,7 +43,7 @@ struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
     using FLC::FLC;
 };
 
-Message* makeMessage(std::string header, int dataSize)
+Message* msgFactory(std::string header, int dataSize)
 {
     auto* m = Message::niw(std::move(header), dataSize);
     std::strcpy(m->get<Message::Data>(), "Default message");
