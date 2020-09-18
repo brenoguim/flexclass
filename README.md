@@ -27,7 +27,7 @@ In this scenario, everytime `msgFactory` is called two allocations will occur:
 It is a rather common technique to group these allocations together. Somes examples are:
 - `std::make_shared<T>` will use a single allocation to create the control block and the T object
 - `new Object[10]` where `Object` is non-trivially-destructible will force the compiler to allocate extra space for the size of the array
-    - This array size is necessary to delete with `delete[]`
+    - This array size is necessary iterate on all elements calling the destructor
 - Many high-performance codebases (such as `LLVM`) will apply this technique to avoid allocations
 
 The goal of merging these allocations is to improve performance through less `malloc` calls, improving locality and reducing fragmentation.
