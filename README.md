@@ -12,7 +12,7 @@ struct Message
     std::unique_ptr<char[]> m_data;
 };
 
-Message* makeMessage(std::string header, int dataSize)
+Message* msgFactory(std::string header, int dataSize)
 {
     auto* m = new Message{std::move(header), std::make_unique<char[]>(dataSize)};
     std::strcpy(m->m_data.get(), "Default message");
@@ -20,7 +20,7 @@ Message* makeMessage(std::string header, int dataSize)
 }
 ```
 
-In this scenario, everytime `makeMessage` is called two allocations will occur:
+In this scenario, everytime `msgFactory` is called two allocations will occur:
 - One for the `m_data` field containing the data
 - One for the `Message` object itself
 
@@ -43,7 +43,7 @@ struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
     using FLC::FLC;
 };
 
-Message* makeMessage(std::string header, int dataSize)
+Message* msgFactory(std::string header, int dataSize)
 {
     auto* m = Message::niw(std::move(header), dataSize);
     std::strcpy(m->get<Message::Data>(), "Default message");
@@ -101,6 +101,8 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 # TODO/Known issues
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
     - The obvious example is the first declared array in the class. It can be assumed it will always sit right after the class object itself.
+- All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
 - Should this class try to interoperate with `operator new` and `operator delete`?
+- Add RAII wrapper
 
 
