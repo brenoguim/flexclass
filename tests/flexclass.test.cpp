@@ -1,24 +1,28 @@
-#include "catch.hpp"
+#include "allocation_tracker.h"
+
+#include <catch.hpp>
 #include <flexclass.hpp>
 
 #include <cstring>
 
 TEST_CASE( "Allocate and destroy", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::SizedArray<char>>
+    struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
     {
         enum Members {Header, Data};
-
         using FLC::FLC;
-
-        static auto* niw(std::string header)
-        {
-            auto r = FLC::niw(std::move(header), 1000);
-            std::strcpy(r->get<Data>().begin(), "This is the default message!");
-            return r;
-        }
     };
 
-    auto r = Message::niw("Header");
-    fc::deleet(r);
+    auto numChars = 1000;
+    auto expectedSize = sizeof(std::string) + sizeof(char*) + numChars*sizeof(char);
+
+    auto r = fc::alloc::track([&] { return Message::niw("SmallMsg", numChars); });
+
+    CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
+    CHECK(fc::alloc::s_freeCount == 0);
+
+    fc::alloc::track([&] { fc::deleet(r); });
+
+    CHECK(fc::alloc::s_allocdBytes == 0);
+    CHECK(fc::alloc::s_freeCount == 1);
 }
