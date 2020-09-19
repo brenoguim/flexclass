@@ -56,7 +56,7 @@ template<class T, int El = -1> struct UnsizedAdjacentArray
     auto begin(const Derived* ptr) const
     {
         if constexpr (El == -1)
-            return aligner(ptr).advance(1).template get<T>();
+            return aligner(ptr, 1).template get<T>();
         else
             return aligner(ptr->template end<El>()).template get<T>();
     }
@@ -74,7 +74,7 @@ template<class T, int El = -1> struct SizedAdjacentArray
     auto begin(const Derived* ptr) const
     {
         if constexpr (El == -1)
-            return aligner(ptr).advance(1).template get<T>();
+            return aligner(ptr, 1).template get<T>();
         else
             return aligner(ptr->template end<El>()).template get<T>();
     }
