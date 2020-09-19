@@ -1,33 +1,35 @@
-#include "allocation_tracker.h"
-
 #include <catch.hpp>
 #include <flexclass.hpp>
 
 #include <cstring>
 
-TEST_CASE( "Allocate and destroy", "[basic]" )
+TEST_CASE( "Default array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, int[]>
     {
         enum Members {Header, Data};
         using FLB::FLB;
     };
 
-    auto numChars = 1000;
-    auto expectedSize = sizeof(std::string) + sizeof(char*) + numChars*sizeof(char);
-
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
-
-    CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
-    CHECK(fc::alloc::s_freeCount == 0);
-
-    fc::alloc::track([&] { fc::destroy(r); });
-
-    CHECK(fc::alloc::s_allocdBytes == 0);
-    CHECK(fc::alloc::s_freeCount == 1);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
-TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
+TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
+{
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, std::string[]>
+    {
+        enum Members {Header, Data};
+        using FLB::FLB;
+    };
+
+    auto r = Message::make("SmallMsg", 1000);
+    int i = 0;
+    for (auto& str : r->get<Message::Data>()) str.resize(i++);
+    fc::destroy(r);
+}
+
+TEST_CASE( "SizedArray", "[sanitizer]" )
 {
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Array<char, fc::track_size>>
     {
@@ -35,21 +37,11 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
         using FLB::FLB;
     };
 
-    auto numChars = 1000;
-    auto expectedSize = sizeof(std::string) + 2*sizeof(char*) + numChars*sizeof(char);
-
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
-
-    CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
-    CHECK(fc::alloc::s_freeCount == 0);
-
-    fc::alloc::track([&] { fc::destroy(r); });
-
-    CHECK(fc::alloc::s_allocdBytes == 0);
-    CHECK(fc::alloc::s_freeCount == 1);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
-TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
+TEST_CASE( "Adjacent array", "[sanitizer]" )
 {
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
     {
@@ -57,22 +49,11 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
         using FLB::FLB;
     };
 
-    auto numChars = 1000;
-    auto expectedSize = sizeof(std::string) + numChars*sizeof(char);
-
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
-
-    CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
-    CHECK(fc::alloc::s_freeCount == 0);
-
-    fc::alloc::track([&] { fc::destroy(r); });
-
-    CHECK(fc::alloc::s_allocdBytes == 0);
-    CHECK(fc::alloc::s_freeCount == 1);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
-
-TEST_CASE( "Using adjacent arrays", "[basic]" )
+TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
 {
     struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
     {
@@ -81,24 +62,70 @@ TEST_CASE( "Using adjacent arrays", "[basic]" )
     };
 
     auto r = Message::make('\0', 1000);
-
-    *r->begin<Message::Data>() = 1;
-
+    for (int i = 0; i < 1000; ++i) r->begin<Message::Data>()[i] = 1;
     fc::destroy(r);
 }
 
-TEST_CASE( "Manipulate a FlexibleArrayClass directly", "[basic]" )
+namespace t1 {
+enum Members { E1, E2, E3 };
+struct MyArray
 {
-    using Message = fc::FlexibleLayoutClass<char, long[], bool>;
+    MyArray(fc::ArrayBuilder<long>&&) {}
 
-    auto r = Message::make('\0', 100, false);
-    r->get<0>() = 'a';
-    r->begin<1>()[0] = 120391409823;
-    r->get<2>() = true;
+    using type = long;
+    using fc_array_kind = fc::unsized;
+    enum { array_alignment = alignof(long) };
 
-    CHECK(r->get<0>() == 'a');
-    CHECK(r->begin<1>()[0] == 120391409823);
-    CHECK(r->get<2>() == true);
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        auto e2begin = ptr->template begin<E2>();
+        auto e2len = ptr->template get<E1>();
+        return fc::aligner(e2begin, e2len).template get<long>();
+    }
+};
 
+TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[sanitizer]" )
+{
+    using Message = fc::FlexibleLayoutClass<char, fc::AdjacentArray<char>, MyArray>;
+
+    auto r = Message::make(1, 1, 1);
+    r->begin<E3>()[0] = 12983;
     fc::destroy(r);
 }
+}
+
+
+namespace t2 {
+enum Members { E1, E2, E3 };
+struct MyArray1
+{
+    MyArray1(fc::ArrayBuilder<char>&&) {}
+
+    using type = char;
+    using fc_array_kind = fc::sized;
+    enum { array_alignment = alignof(char) };
+
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        return fc::aligner(ptr,1).template get<char>();
+    }
+
+    template<class Derived>
+    auto end(const Derived* ptr) const
+    {
+        return begin(ptr) + ptr->template get<E1>();
+    }
+};
+
+TEST_CASE( "Test co-dependent array", "[sanitizer]" )
+{
+    using Message = fc::FlexibleLayoutClass<char, MyArray1, fc::AdjacentArray<long, E2>>;
+
+    auto r = Message::make(1, 1, 1);
+    r->begin<E3>()[0] = 12983;
+    fc::destroy(r);
+}
+}
+
