@@ -141,7 +141,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
     template<auto e> decltype(auto) end() { return std::get<e>(*this).begin(this); }
 
     template<class... Args>
-    static auto niw(Args&&... args)
+    static auto make(Args&&... args)
     {
         static_assert(sizeof(Derived) == sizeof(FlexibleLayoutBase));
 
@@ -171,7 +171,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
         return new (implBuffer) Derived(std::move(pi));
     }
 
-    static void deleet(const Derived* p)
+    static void destroy(const Derived* p)
     {
         if (!p) return;
         for_each_in_tuple(*p,
@@ -187,7 +187,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
     }
 };
 
-template<class T> void deleet(const T* p) { T::deleet(p); }
+template<class T> void destroy(const T* p) { T::destroy(p); }
 
 template<class... Args>
 struct FlexibleLayoutClass : public FlexibleLayoutBase<FlexibleLayoutClass<Args...>, Args...>

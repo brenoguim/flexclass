@@ -13,8 +13,8 @@ TEST_CASE( "Default array", "[sanitizer]" )
         using FLB::FLB;
     };
 
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
 TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
@@ -25,10 +25,10 @@ TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
         using FLB::FLB;
     };
 
-    auto r = Message::niw("SmallMsg", 1000);
+    auto r = Message::make("SmallMsg", 1000);
     int i = 0;
     for (auto& str : r->get<Message::Data>()) str.resize(i++);
-    fc::deleet(r);
+    fc::destroy(r);
 }
 
 TEST_CASE( "SizedArray", "[sanitizer]" )
@@ -39,8 +39,8 @@ TEST_CASE( "SizedArray", "[sanitizer]" )
         using FLB::FLB;
     };
 
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
 TEST_CASE( "Adjacent array", "[sanitizer]" )
@@ -51,8 +51,8 @@ TEST_CASE( "Adjacent array", "[sanitizer]" )
         using FLB::FLB;
     };
 
-    auto r = Message::niw("SmallMsg", 1000);
-    fc::deleet(r);
+    auto r = Message::make("SmallMsg", 1000);
+    fc::destroy(r);
 }
 
 TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
@@ -63,9 +63,9 @@ TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
         using FLB::FLB;
     };
 
-    auto r = Message::niw('\0', 1000);
+    auto r = Message::make('\0', 1000);
     for (int i = 0; i < 1000; ++i) r->begin<Message::Data>()[i] = 1;
-    fc::deleet(r);
+    fc::destroy(r);
 }
 
 namespace t1 {
@@ -91,9 +91,9 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[saniti
 {
     using Message = fc::FlexibleLayoutClass<char, fc::AdjacentArray<char>, MyArray>;
 
-    auto r = Message::niw(1, 1, 1);
+    auto r = Message::make(1, 1, 1);
     r->begin<E3>()[0] = 12983;
-    fc::deleet(r);
+    fc::destroy(r);
 }
 }
 
@@ -125,9 +125,9 @@ TEST_CASE( "Test co-dependent array", "[sanitizer]" )
 {
     using Message = fc::FlexibleLayoutClass<char, MyArray1, fc::AdjacentArray<long, E2>>;
 
-    auto r = Message::niw(1, 1, 1);
+    auto r = Message::make(1, 1, 1);
     r->begin<E3>()[0] = 12983;
-    fc::deleet(r);
+    fc::destroy(r);
 }
 }
 

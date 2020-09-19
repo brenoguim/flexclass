@@ -45,7 +45,7 @@ struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
 
 Message* msgFactory(std::string header, int dataSize)
 {
-    auto* m = Message::niw(std::move(header), dataSize);
+    auto* m = Message::make(std::move(header), dataSize);
     std::strcpy(m->get<Message::Data>(), "Default message");
     return m;
 }
@@ -152,7 +152,7 @@ class SharedArray<T[]>
 
   public:
     /* Interesting public API */
-    static SharedArray make(std::size_t len) { return {Impl::niw(/*num references*/1, len)}; }
+    static SharedArray make(std::size_t len) { return {Impl::make(/*num references*/1, len)}; }
 
     decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
     decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
@@ -166,7 +166,7 @@ class SharedArray<T[]>
   private:
     SharedArray(Impl* data) : m_data(data) {}
     void incr() { if (m_data) m_data->template get<RefCount>()++; }
-    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::deleet(m_data); }
+    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 ```
@@ -194,7 +194,7 @@ int, std::string, char[], bool, SizedArray<int>  ==>  int, std::string, ArrayBui
 After, it initializes a tuple with these types, passing the arguments the user provided:
 
 ```
-niw(Args... args = [10, "test", 300, true, 400]) {
+make(Args... args = [10, "test", 300, true, 400]) {
 
     std::tuple<int, std::string, ArrayBuilder<char>, bool, ArrayBuilder<int>> intermediateRepresentation(args...);
 }
@@ -212,7 +212,6 @@ So the following steps are taken:
 - Create the output from the intermediate tuple and return it
 
 # TODO/Known issues
-- Rename `niw` to `make` and `deleet` to `detroy`
 - Simplify "how `Flexclass` works". It's too convoluted.
 - Improve tests
     - All tests should run with sanitizer, except the memory allocation tests
@@ -226,4 +225,4 @@ So the following steps are taken:
 - Document customization infrastructure
 - Make aligner constexpr? I suspect it can be much more efficient than it is now
 - Add support passing arguments to the array constructor
-- All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
+- All inputs to `make` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
