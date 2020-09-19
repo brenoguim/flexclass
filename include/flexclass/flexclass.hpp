@@ -15,9 +15,9 @@ struct unsized {};
 struct sized {};
 
 template<class T>
-struct ArrayPlaceHolder
+struct ArrayBuilder
 {
-    ArrayPlaceHolder(std::size_t size) : m_size(size) {}
+    ArrayBuilder(std::size_t size) : m_size(size) {}
 
     void consume(void*& buf, std::size_t& space)
     {
@@ -49,7 +49,7 @@ struct ArrayPlaceHolder
 
 template<class T> struct UnsizedArray
 {
-    UnsizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()) {}
+    UnsizedArray(ArrayBuilder<T>&& aph) : m_begin(aph.begin()) {}
 
     using type = T;
     using fc_array_kind = unsized;
@@ -65,7 +65,7 @@ template<class T> struct UnsizedArray
 
 template<class T> struct SizedArray
 {
-    SizedArray(ArrayPlaceHolder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
+    SizedArray(ArrayBuilder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
 
     using type = T;
     using fc_array_kind = sized;
@@ -86,7 +86,7 @@ template<class T> struct SizedArray
 
 template<class T> struct AdjacentArray
 {
-    AdjacentArray(ArrayPlaceHolder<T>&&) {}
+    AdjacentArray(ArrayBuilder<T>&&) {}
 
     using type = T;
     using fc_array_kind = unsized;
@@ -101,7 +101,7 @@ template<class T> struct AdjacentArray
 
 template<class T> struct SizedAdjacentArray
 {
-    SizedAdjacentArray(ArrayPlaceHolder<T>&& aph) : m_end(aph.end()) {}
+    SizedAdjacentArray(ArrayBuilder<T>&& aph) : m_end(aph.end()) {}
 
     using type = T;
     using fc_array_kind = sized;
@@ -131,7 +131,7 @@ struct TransformUnboundedArrays<T[]>
 };
 
 template<class T> struct is_array_placeholder : std::false_type {};
-template<class T> struct is_array_placeholder<ArrayPlaceHolder<T>> : std::true_type {};
+template<class T> struct is_array_placeholder<ArrayBuilder<T>> : std::true_type {};
 
 template<class T> struct void_ { using type = void; };
 
@@ -142,9 +142,9 @@ template<class T> struct is_fc_array<T, typename void_<typename T::fc_array_kind
 };
 
 template<class T, class = void> struct PreImplConverter { using type = T; };
-template<class T> struct PreImplConverter<T[], void> { using type = ArrayPlaceHolder<T>; };
+template<class T> struct PreImplConverter<T[], void> { using type = ArrayBuilder<T>; };
 template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
-{ using type = ArrayPlaceHolder<typename T::type>; };
+{ using type = ArrayBuilder<typename T::type>; };
 
 namespace detail
 {
