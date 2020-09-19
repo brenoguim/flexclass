@@ -13,6 +13,15 @@ namespace fc
 struct unsized {};
 struct sized {};
 
+inline void* incr(void* in, std::size_t len) { return static_cast<char*>(in) + len; }
+
+template<class T>
+inline auto align(void* ptr)
+{
+    std::size_t space = std::numeric_limits<std::size_t>::max();
+    return static_cast<T*>(std::align(alignof(T), 0, ptr, space));
+}
+
 template<class T>
 struct ArrayBuilder
 {
@@ -23,6 +32,7 @@ struct ArrayBuilder
         m_ptr = std::align(alignof(T), numBytes(), buf, space);
         assert(m_ptr);
         space -= numBytes();
+        buf = incr(buf, numBytes());
 
         for (auto& el : *this) new (&el) T;
     }
@@ -169,7 +179,7 @@ void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
 template<class T, class = void> struct GetAlignmentRequirement { static constexpr auto value = alignof(T); };
 template<class T> struct GetAlignmentRequirement<T[], void> { static constexpr auto value = alignof(T); };
 template<class T> struct GetAlignmentRequirement<T, typename void_<typename is_fc_array<T>::enable>::type>
-{ static constexpr auto value = T::array_alignment; };
+{ static constexpr std::size_t value = T::array_alignment; };
 
 template<class... Types>
 struct CollectAlignment
@@ -219,7 +229,9 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
         for_each_in_tuple(pi,
             [arrayBuffer, &numBytesForArrays]<class U>(U& u) mutable {
                 if constexpr (is_array_placeholder<U>::value)
+                {
                     u.consume(arrayBuffer, numBytesForArrays);
+                }
             });
 
         assert(numBytesForArrays == 0);
