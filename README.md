@@ -152,6 +152,39 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
     ...
 ```
 
+# How `Flexclass` works
+
+`Flexclass` works by inspecting the types being passed to `FlexibleLayout(Class|Base)`.
+The first step is to recognize `T[]` types and convert them to either `SizedArray<T>` or `UnsizedArray<T>`:
+```
+int, std::string, char[], bool, SizedArray<int>  ==>  int, std::string, UnsizedArray<char>, bool, SizedArray<int>
+```
+
+Then it replaces all `array` types by an `ArrayBuilder`:
+```
+int, std::string, char[], bool, SizedArray<int>  ==>  int, std::string, ArrayBuilder<char>, bool, ArrayBuilder<int>
+```
+
+After, it initializes a tuple with these types, passing the arguments the user provided:
+
+```
+niw(Args... args = [10, "test", 300, true, 400]) {
+
+    std::tuple<int, std::string, ArrayBuilder<char>, bool, ArrayBuilder<int>> intermediateRepresentation(args...);
+}
+```
+
+So each `ArrayBuilder` will be initialized with the requested number of elements for the array.
+
+The output tuple is was actually obtained in the begining: `tuple<int, std::string, UnsizedArray<T>, bool, SizedArray<int>>`.
+But to be created, it needs to know where the arrays exist - for example, the `UnsizedArray<char>` needs to know the `begin` of the `char` array.
+
+So the following steps are taken:
+- Ask each `ArrayBuilder` how much memory it will need
+- Allocate a buffer with the sum of the requested sizes + size of the output tuple
+- Ask each `ArrayBuilder` to build their arrays in the buffer
+- Create the output from the intermediate tuple and return it
+
 # TODO/Known issues
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
 - Add check that there is only one `AdjacentArray`
