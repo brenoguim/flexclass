@@ -10,8 +10,11 @@
 namespace fc
 {
 
-struct unsized {};
-struct sized {};
+namespace handle
+{
+struct range {};
+struct array {};
+}
 
 inline void* incr(void* in, std::size_t len) { return static_cast<char*>(in) + len; }
 
@@ -77,7 +80,7 @@ template<class T> struct is_array_placeholder<ArrayBuilder<T>> : std::true_type 
 template<class T> struct void_ { using type = void; };
 
 template<class T, class = void> struct is_fc_array : std::false_type {};
-template<class T> struct is_fc_array<T, typename void_<typename T::fc_array_kind>::type> : std::true_type
+template<class T> struct is_fc_array<T, typename void_<typename T::fc_handle>::type> : std::true_type
 {
     using enable = T;
 };

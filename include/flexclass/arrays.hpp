@@ -10,7 +10,7 @@ template<class T> struct Array
     Array(ArrayBuilder<T>&& aph) : m_begin(aph.begin()) {}
 
     using type = T;
-    using fc_array_kind = unsized;
+    using fc_handle = handle::array;
     static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
@@ -26,7 +26,7 @@ template<class T> struct Range
     Range(ArrayBuilder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
 
     using type = T;
-    using fc_array_kind = sized;
+    using fc_handle = handle::range;
     static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
@@ -47,7 +47,7 @@ template<class T, int El = -1> struct AdjacentArray
     AdjacentArray(ArrayBuilder<T>&&) {}
 
     using type = T;
-    using fc_array_kind = unsized;
+    using fc_handle = handle::array;
     static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
@@ -65,7 +65,7 @@ template<class T, int El = -1> struct AdjacentRange
     AdjacentRange(ArrayBuilder<T>&& aph) : m_end(aph.end()) {}
 
     using type = T;
-    using fc_array_kind = sized;
+    using fc_handle = handle::range;
     static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>

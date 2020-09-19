@@ -73,7 +73,7 @@ struct MyArray
     MyArray(fc::ArrayBuilder<long>&&) {}
 
     using type = long;
-    using fc_array_kind = fc::unsized;
+    using fc_handle = fc::handle::array;
     enum { array_alignment = alignof(long) };
 
     template<class Derived>
@@ -103,7 +103,7 @@ struct MyArray1
     MyArray1(fc::ArrayBuilder<char>&&) {}
 
     using type = char;
-    using fc_array_kind = fc::sized;
+    using fc_handle = fc::handle::range;
     enum { array_alignment = alignof(char) };
 
     template<class Derived>
