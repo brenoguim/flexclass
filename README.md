@@ -170,7 +170,6 @@ class SharedArray<T[]>
     Impl* m_data {nullptr};
 };
 ```
-Play with this example in https://godbolt.org/z/s7jsb4
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
