@@ -105,9 +105,10 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 # Feature summary
 
 - `SizedArray<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
-- `UnsizedArray<T>` requests a pointer to just the `begin` of the array (cost: 1 pointer)
+- `UnsizedArray<T>` requests a pointer only to the `begin` of the array (cost: 1 pointer)
+- `SizedAdjacentArray<T>` requests a pointer to the `end` of the array. The `begin` is deduced to be the first array. (cost: 1 pointer)
 - `AdjacentArray<T>` is like `UnsizedArray<T>` but infers the `begin` to be the first array. (cost: 0 pointers)
-- `T[]` will translate to `fc::SizedArray<T>` if `T` is non-trivially-destructible and `fc::UnsizedArray<T>` otherwise
+- `T[]` will translate to `SizedArray<T>` if `T` is non-trivially-destructible and `UnsizedArray<T>` otherwise
 
 # Cool Applications
 
