@@ -135,10 +135,10 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
     template<auto e> decltype(auto) get() const { return std::get<e>(*this); }
 
     template<auto e> decltype(auto) begin() const { return std::get<e>(*this).begin(this); }
-    template<auto e> decltype(auto) end() const { return std::get<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() const { return std::get<e>(*this).end(this); }
 
     template<auto e> decltype(auto) begin() { return std::get<e>(*this).begin(this); }
-    template<auto e> decltype(auto) end() { return std::get<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() { return std::get<e>(*this).end(this); }
 
     template<class... Args>
     static auto make(Args&&... args)
