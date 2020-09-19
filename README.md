@@ -123,9 +123,9 @@ In this case:
 - `Data1` array uses the end of the base to reference itself
 - `Data2` array uses the `end` of `Data1` array to reference itself.
 
-The memory costs for each array are:
-- `AdjacentArray<T>` (cost: 0 pointers)
-- `SizedAdjacentArray<T>` (cost: 1 pointer)
+Cost:
+- `UnsizedAdjacentArray<T>` cost 0 pointers
+- `SizedAdjacentArray<T>` cost 1 pointer
 
 ### Raw `T[]`
 - `T[]` will translate to `UnsizedArray<T>` if `T` is trivially-destructible and `SizedArray<T>` otherwise
