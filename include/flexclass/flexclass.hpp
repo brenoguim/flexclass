@@ -96,6 +96,25 @@ template<class T> struct alignas(alignof(T)) AdjacentArray
     }
 };
 
+template<class T> struct alignas(alignof(T)) SizedAdjacentArray
+{
+    SizedAdjacentArray(ArrayPlaceHolder<T>&& aph) : m_end(aph.end()) {}
+
+    using type = T;
+    using fc_array_kind = sized;
+
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
+    }
+
+    template<class Derived>
+    auto end(const Derived* ptr) const { return m_end; }
+
+    T* const m_end;
+};
+
 template<class T> struct TransformUnboundedArrays { using type = T; };
 
 template<class T>
@@ -198,11 +217,11 @@ class FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T
     {
         if (!p) return;
         for_each_in_tuple(*p,
-            []<class U>(U& u) {
+            [p]<class U>(U& u) {
                 if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
                 if constexpr (!std::is_trivially_destructible<typename U::type>::value)
                 {
-                    std::destroy(u.begin(), u.end());
+                    std::destroy(u.begin(p), u.end(p));
                 }
             });
         p->~Derived();
