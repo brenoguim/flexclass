@@ -128,8 +128,8 @@ class SharedArray<T[]>
     /* Interesting public API */
     static SharedArray make(std::size_t len) { return {Impl::niw(/*num references*/1, len)}; }
     
-    decltype(auto) operator[](std::size_t i) { return m_data->template get<Data>()[i]; }
-    decltype(auto) operator[](std::size_t i) const { return m_data->template get<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
 
     /* Boilerplate */
     SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
@@ -144,7 +144,7 @@ class SharedArray<T[]>
     Impl* m_data {nullptr};
 };
 ```
-Play with this example in https://godbolt.org/z/WKhf5f
+Play with this example in https://godbolt.org/z/s7jsb4
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
