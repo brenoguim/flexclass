@@ -138,15 +138,15 @@ void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
 }
 
 template<class Derived, class... T>
-class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<T>::type...>
+class FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T>::type...>
 { 
   private:
     using Base = std::tuple<typename TransformUnboundedArrays<T>::type...>;
     using Base::Base;
 
   protected:
-    using FLC = FlexibleLayoutClass;
-    ~FlexibleLayoutClass() = default;
+    using FLC = FlexibleLayoutBase;
+    ~FlexibleLayoutBase() = default;
 
   public:
     template<auto e> auto& get() { return std::get<e>(*this); }
@@ -157,7 +157,7 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
     template<class... Args>
     static auto niw(Args&&... args)
     {
-        static_assert(sizeof(Derived) == sizeof(FlexibleLayoutClass));
+        static_assert(sizeof(Derived) == sizeof(FlexibleLayoutBase));
 
         using PreImpl = std::tuple<typename PreImplConverter<T>::type...>;
         PreImpl pi(std::forward<Args>(args)...);
@@ -166,11 +166,11 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
         for_each_in_tuple(pi,
             [&numBytesForArrays]<class U>(U& u) mutable {
                 if constexpr (is_array_placeholder<U>::value)
-                    numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleLayoutClass) + numBytesForArrays);
+                    numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleLayoutBase) + numBytesForArrays);
             });
 
-        auto implBuffer = ::operator new(sizeof(FlexibleLayoutClass) + numBytesForArrays);
-        void* arrayBuffer = static_cast<char*>(implBuffer) + sizeof(FlexibleLayoutClass);
+        auto implBuffer = ::operator new(sizeof(FlexibleLayoutBase) + numBytesForArrays);
+        void* arrayBuffer = static_cast<char*>(implBuffer) + sizeof(FlexibleLayoutBase);
 
         for_each_in_tuple(pi,
             [arrayBuffer, &numBytesForArrays]<class U>(U& u) mutable {
@@ -200,5 +200,11 @@ class FlexibleLayoutClass : public std::tuple<typename TransformUnboundedArrays<
 };
 
 template<class T> void deleet(const T* p) { T::deleet(p); }
+
+template<class... Args>
+struct FlexibleLayoutClass : public FlexibleLayoutBase<FlexibleLayoutClass<Args...>, Args...>
+{
+    using FlexibleLayoutBase<FlexibleLayoutClass<Args...>, Args...>::FlexibleLayoutBase;
+};
 
 }

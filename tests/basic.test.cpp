@@ -7,7 +7,7 @@
 
 TEST_CASE( "Allocate and destroy", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, char[]>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -29,7 +29,7 @@ TEST_CASE( "Allocate and destroy", "[basic]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::SizedArray<char>>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::SizedArray<char>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -51,7 +51,7 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
 
 TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, std::string, fc::AdjacentArray<char>>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -74,7 +74,7 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
 
 TEST_CASE( "Using adjacent arrays", "[basic]" )
 {
-    struct Message : public fc::FlexibleLayoutClass<Message, char, fc::AdjacentArray<long>>
+    struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
         using FLC::FLC;
@@ -83,6 +83,22 @@ TEST_CASE( "Using adjacent arrays", "[basic]" )
     auto r = Message::niw('\0', 1000);
 
     *r->begin<Message::Data>() = 1;
+
+    fc::deleet(r);
+}
+
+TEST_CASE( "Manipulate a FlexibleArrayClass directly", "[basic]" )
+{
+    using Message = fc::FlexibleLayoutClass<char, long[], bool>;
+
+    auto r = Message::niw('\0', 100, false);
+    r->get<0>() = 'a';
+    r->get<1>()[0] = 120391409823;
+    r->get<2>() = true;
+
+    CHECK(r->get<0>() == 'a');
+    CHECK(r->get<1>()[0] == 120391409823);
+    CHECK(r->get<2>() == true);
 
     fc::deleet(r);
 }
