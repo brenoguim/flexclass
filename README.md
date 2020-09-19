@@ -219,6 +219,7 @@ FlexibleLayoutBase::make(Args... args)
     - Add examples as tests
 - Add CI
 - clang-format
+- Add range-for support for sized arrays
 - Support arrays before the base
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Add RAII wrapper
