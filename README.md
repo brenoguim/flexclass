@@ -115,11 +115,8 @@ template<class T>
 class SharedArray<T[]>
 {
     enum Members {RefCount, Data};
-    struct Impl : public fc::FlexibleLayoutBase<Impl, unsigned, T[]> {
-        using Base = fc::FlexibleLayoutBase<Impl, unsigned, T[]>;
-        using Base::Base;
-    };
-
+    using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
+    
   public:
     /* Interesting public API */
     static SharedArray make(std::size_t len) { return {Impl::niw(/*num references*/1, len)}; }
@@ -129,7 +126,7 @@ class SharedArray<T[]>
 
     /* Boilerplate */
     SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
-    SharedArray(const SharedArray& other) { decr(); m_data = other.m_data; incr(); }
+    SharedArray(const SharedArray& other) { m_data = other.m_data; incr(); }
     SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); return *this; }
     SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); return *this; }
     ~SharedArray() { decr(); }
@@ -140,7 +137,7 @@ class SharedArray<T[]>
     Impl* m_data {nullptr};
 };
 ```
-Play with this example in https://godbolt.org/z/vzKGv9
+Play with this example in https://godbolt.org/z/nzK3fM
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
