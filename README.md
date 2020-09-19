@@ -212,10 +212,7 @@ So the following steps are taken:
 - Create the output from the intermediate tuple and return it
 
 # TODO/Known issues
-- Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
-- Add check that there is only one `AdjacentArray`
-- Automatically infer `AdjacentArray` for the first `T[]` in the class
-- Offer a sized flavor of `AdjacentArray` for non-trivially-destructible types
+- Document customization infrastructure
 - move all examples to be compiled
 - All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
 - Should this class try to interoperate with `operator new` and `operator delete`?
