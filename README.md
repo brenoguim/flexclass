@@ -104,10 +104,30 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 
 # Feature summary
 
+## `SizedArray` and `UnsizedArray`
 - `SizedArray<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
 - `UnsizedArray<T>` requests a pointer only to the `begin` of the array (cost: 1 pointer)
-- `SizedAdjacentArray<T>` requests a pointer to the `end` of the array. The `begin` is deduced to be the first array. (cost: 1 pointer)
-- `AdjacentArray<T>` is like `UnsizedArray<T>` but infers the `begin` to be the first array. (cost: 0 pointers)
+
+## `AdjacentArray` and `SizedAdjacentArray`
+
+Adjacent arrays deduce their `begin` from another element:
+- By default, they are adjacent to the base
+- They can also be adjacent to another array passed as second template argument:
+
+```
+enum Members { RefCount, Data1, Data2 };
+using Impl = fc::FlexibleLayoutClass<long, fc::SizedAdjacentArray<long>, fc::AdjacentArray<char, Data1>;
+```
+
+In this case:
+- `Data1` array uses the end of the base to reference itself
+- `Data2` array uses the `end` of `Data1` array to reference itself.
+
+The memory costs for each array are:
+- `AdjacentArray<T>` (cost: 0 pointers)
+- `SizedAdjacentArray<T>` (cost: 1 pointer)
+
+## Raw `T[]`
 - `T[]` will translate to `SizedArray<T>` if `T` is non-trivially-destructible and `UnsizedArray<T>` otherwise
 
 # Cool Applications
