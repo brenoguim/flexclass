@@ -5,6 +5,8 @@
 namespace fc
 {
 
+enum SizeTracking { track_size, dont_track_size };
+
 template<class T> struct UnsizedArray
 {
     UnsizedArray(ArrayBuilder<T>&& aph) : m_begin(aph.begin()) {}
@@ -42,9 +44,9 @@ template<class T> struct SizedArray
     T* const m_end;
 };
 
-template<class T, int El = -1> struct AdjacentArray
+template<class T, int El = -1> struct UnsizedAdjacentArray
 {
-    AdjacentArray(ArrayBuilder<T>&&) {}
+    UnsizedAdjacentArray(ArrayBuilder<T>&&) {}
 
     using type = T;
     using fc_array_kind = unsized;
@@ -83,13 +85,16 @@ template<class T, int El = -1> struct SizedAdjacentArray
     T* const m_end;
 };
 
+template<class T, SizeTracking st = dont_track_size>
+using Array = std::conditional_t<st == track_size, SizedArray<T>, UnsizedArray<T>>;
+
+template<class T, int El = -1, SizeTracking st = dont_track_size>
+using AdjacentArray = std::conditional_t<st == track_size, SizedAdjacentArray<T, El>, UnsizedAdjacentArray<T, El>>;
+
 template<class T>
 struct ArraySelector<T[]>
 {
-    using type = std::conditional_t< std::is_trivially_destructible<T>::value
-                                     , UnsizedArray<T>
-                                     , SizedArray<T>
-                                     >;
+    using type = Array<T, std::is_trivially_destructible<T>::value ? dont_track_size : track_size>;
 };
 
 }

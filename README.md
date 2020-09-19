@@ -108,7 +108,7 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 - `SizedArray<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
 - `UnsizedArray<T>` requests a pointer only to the `begin` of the array (cost: 1 pointer)
 
-## `AdjacentArray` and `SizedAdjacentArray`
+## `UnsizedAdjacentArray` and `SizedAdjacentArray`
 
 Adjacent arrays deduce their `begin` from another element:
 - By default, they are adjacent to the base
@@ -129,6 +129,12 @@ The memory costs for each array are:
 
 ## Raw `T[]`
 - `T[]` will translate to `SizedArray<T>` if `T` is non-trivially-destructible and `UnsizedArray<T>` otherwise
+
+## Aliases
+- `SizedArray<T>`           is equivalent to `Array<T, fc::track_size>` 
+- `UnsizedArray<T>`         is equivalent to `Array<T>`  or `Array<T, fc::dont_track_size>`
+- `SizedAdjacentArray<T>`   is equivalent to `AdjacentArray<T, fc::track_size>` 
+- `UnsizedAdjacentArray<T>` is equivalent to `AdjacentArray<T>`  or `AdjacentArray<T, fc::dont_track_size>`
 
 # Cool Applications
 
