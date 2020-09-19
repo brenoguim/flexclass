@@ -51,9 +51,9 @@ Message* msgFactory(std::string header, int dataSize)
 }
 ```
 
-In this new version, members are declared as arguments of `fc::FlexibleLayoutBase`. To make member access convenient, it's also recommended to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
+In this new version, members are declared as arguments of `fc::FlexibleLayoutBase`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
 
-With that out of the way, this `Flexclass` will now inspect the argument list, find `char[]` and understand that you want an array together with your datastructure.
+To build the layout `Flexclass` inspects the argument list, finds `char[]` and understands that a `char` array must be attached to the allocation.
 
 The layout of the `Message` is:
 ```
@@ -62,7 +62,7 @@ The layout of the `Message` is:
                        |________|
 ```
 
-`Flexclass` not limited to one array, so the following declaration is perfectly valid:
+`Flexclass` is not limited to one array, so the following declaration is perfectly valid:
 ```
 struct Message : public fc::FlexibleLayoutBase<Message, int[], std::string, std::string[], bool>
 ```
@@ -80,7 +80,7 @@ Which will generate the following layout:
      |______________________________________________________________________|
 ```
 
-Notice the layout contains the `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors of such objects when destroying the `Message`.
+Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
 
 Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::SizedArray` helper:
 
@@ -155,5 +155,3 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
 - All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
 - Should this class try to interoperate with `operator new` and `operator delete`?
 - Add RAII wrapper
-
-
