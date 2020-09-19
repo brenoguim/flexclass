@@ -31,7 +31,7 @@ TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
 
 TEST_CASE( "SizedArray", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Array<char, fc::track_size>>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;

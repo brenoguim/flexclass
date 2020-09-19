@@ -29,7 +29,7 @@ TEST_CASE( "Allocate and destroy", "[memory]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[memory]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Array<char, fc::track_size>>
+    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;

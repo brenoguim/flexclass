@@ -88,10 +88,10 @@ Which will generate the following layout:
 
 Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
 
-Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::SizedArray` helper:
+Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::Range` helper:
 
 ```
-struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::SizedArray<char>>
+struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
 ```
 
 In this case, there will be an `end` pointer to the `char` array too, giving the user methods `end()` and `size()`:
@@ -104,19 +104,19 @@ for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 
 # Feature summary
 
-### `SizedArray` and `UnsizedArray`
-- `SizedArray<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
-- `UnsizedArray<T>` requests a pointer only to the `begin` of the array (cost: 1 pointer)
+### `Range` and `Array`
+- `Range<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
+- `Array<T>` requests a pointer only to the `begin` of the array (cost: 1 pointer)
 
-### `UnsizedAdjacentArray` and `SizedAdjacentArray`
+### `AdjacentArray` and `AdjacentRange`
 
-Adjacent arrays deduce their `begin` from another element:
+Adjacent handles deduce their `begin` from another element:
 - By default, they are adjacent to the base
 - They can also be adjacent to another array passed as second template argument:
 
 ```
 enum Members { RefCount, Data1, Data2 };
-using Impl = fc::FlexibleLayoutClass<long, fc::SizedAdjacentArray<long>, fc::AdjacentArray<char, Data1>;
+using Impl = fc::FlexibleLayoutClass<long, fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
 ```
 
 In this case:
@@ -124,17 +124,11 @@ In this case:
 - `Data2` array uses the `end` of `Data1` array to reference itself.
 
 Cost:
-- `UnsizedAdjacentArray<T>` cost 0 pointers
-- `SizedAdjacentArray<T>` cost 1 pointer
+- `AdjacentArray<T>` cost 0 pointers
+- `AdjacentRange<T>` cost 1 pointer
 
 ### Raw `T[]`
-- `T[]` will translate to `UnsizedArray<T>` if `T` is trivially-destructible and `SizedArray<T>` otherwise
-
-### Aliases
-- `SizedArray<T>`           is equivalent to `Array<T, fc::track_size>` 
-- `UnsizedArray<T>`         is equivalent to `Array<T>`  or `Array<T, fc::dont_track_size>`
-- `SizedAdjacentArray<T>`   is equivalent to `AdjacentArray<T, fc::track_size>` 
-- `UnsizedAdjacentArray<T>` is equivalent to `AdjacentArray<T>`  or `AdjacentArray<T, fc::dont_track_size>`
+- `T[]` will translate to `Array<T>` if `T` is trivially-destructible and `Range<T>` otherwise
 
 # Cool Applications
 
