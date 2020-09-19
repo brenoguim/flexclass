@@ -53,6 +53,7 @@ template<class T> struct UnsizedArray
 
     using type = T;
     using fc_array_kind = unsized;
+    static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
     auto begin(const Derived* ptr) const { return m_begin; }
@@ -68,6 +69,7 @@ template<class T> struct SizedArray
 
     using type = T;
     using fc_array_kind = sized;
+    static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
     auto begin(const Derived* ptr) const { return m_begin; }
@@ -82,12 +84,13 @@ template<class T> struct SizedArray
     T* const m_end;
 };
 
-template<class T> struct alignas(alignof(T)) AdjacentArray
+template<class T> struct AdjacentArray
 {
     AdjacentArray(ArrayPlaceHolder<T>&&) {}
 
     using type = T;
     using fc_array_kind = unsized;
+    static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -96,12 +99,13 @@ template<class T> struct alignas(alignof(T)) AdjacentArray
     }
 };
 
-template<class T> struct alignas(alignof(T)) SizedAdjacentArray
+template<class T> struct SizedAdjacentArray
 {
     SizedAdjacentArray(ArrayPlaceHolder<T>&& aph) : m_end(aph.end()) {}
 
     using type = T;
     using fc_array_kind = sized;
+    static constexpr auto array_alignment = alignof(T);
 
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -163,8 +167,19 @@ void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
 
+template<class T, class = void> struct GetAlignmentRequirement { static constexpr auto value = alignof(T); };
+template<class T> struct GetAlignmentRequirement<T[], void> { static constexpr auto value = alignof(T); };
+template<class T> struct GetAlignmentRequirement<T, typename void_<typename is_fc_array<T>::enable>::type>
+{ static constexpr auto value = T::array_alignment; };
+
+template<class... Types>
+struct CollectAlignment
+{
+    static constexpr auto value = std::max({GetAlignmentRequirement<Types>::value...}); 
+};
+
 template<class Derived, class... T>
-class FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T>::type...>
+class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T>::type...>
 { 
   private:
     using Base = std::tuple<typename TransformUnboundedArrays<T>::type...>;
