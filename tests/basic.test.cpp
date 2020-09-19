@@ -10,7 +10,7 @@ TEST_CASE( "Allocate and destroy", "[basic]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto numChars = 1000;
@@ -32,7 +32,7 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[basic]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::SizedArray<char>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto numChars = 1000;
@@ -54,7 +54,7 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[basic]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto numChars = 1000;
@@ -77,7 +77,7 @@ TEST_CASE( "Using adjacent arrays", "[basic]" )
     struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw('\0', 1000);

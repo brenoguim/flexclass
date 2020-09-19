@@ -10,7 +10,7 @@ TEST_CASE( "Default array", "[sanitizer]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, int[]>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw("SmallMsg", 1000);
@@ -22,7 +22,7 @@ TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, std::string[]>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw("SmallMsg", 1000);
@@ -36,7 +36,7 @@ TEST_CASE( "SizedArray", "[sanitizer]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::SizedArray<char>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw("SmallMsg", 1000);
@@ -48,7 +48,7 @@ TEST_CASE( "Adjacent array", "[sanitizer]" )
     struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw("SmallMsg", 1000);
@@ -60,7 +60,7 @@ TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
     struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
-        using FLC::FLC;
+        using FLB::FLB;
     };
 
     auto r = Message::niw('\0', 1000);

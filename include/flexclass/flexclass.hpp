@@ -186,7 +186,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
     using Base::Base;
 
   protected:
-    using FLC = FlexibleLayoutBase;
+    using FLB = FlexibleLayoutBase;
     ~FlexibleLayoutBase() = default;
 
   public:

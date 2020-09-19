@@ -40,7 +40,7 @@ The same `Message` can be implemented with `Flexclass`:
 struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
 {
     enum Members {Header, Data};
-    using FLC::FLC;
+    using FLB::FLB;
 };
 
 Message* msgFactory(std::string header, int dataSize)
