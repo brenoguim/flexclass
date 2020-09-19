@@ -60,7 +60,7 @@ The layout of the `Message` is:
                      _________
                     |         |
                     |         V
-|[std::string] [char* const]| [char] [char] [char] ... [char
+|[std::string] [char* const]| [char] [char] [char] ... [char]
 |                           |
 |                           |
 |         Message           |
