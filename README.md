@@ -212,8 +212,18 @@ So the following steps are taken:
 - Create the output from the intermediate tuple and return it
 
 # TODO/Known issues
-- Document customization infrastructure
-- move all examples to be compiled
-- All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
-- Should this class try to interoperate with `operator new` and `operator delete`?
+- Rename `niw` to `make` and `deleet` to `detroy`
+- Simplify "how `Flexclass` works". It's too convoluted.
+- Improve tests
+    - All tests should run with sanitizer, except the memory allocation tests
+    - Rethink how tests can be done in a more extensive and automatic way
+    - Add examples as tests
+- Add CI
+- clang-format
+- Support arrays before the base
+- Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Add RAII wrapper
+- Document customization infrastructure
+- Make aligner constexpr? I suspect it can be much more efficient than it is now
+- Add support passing arguments to the array constructor
+- All inputs to `niw` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.
