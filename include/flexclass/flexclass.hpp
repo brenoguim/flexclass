@@ -23,6 +23,20 @@ inline auto align(void* ptr)
 }
 
 template<class T>
+struct aligner_impl
+{
+    aligner_impl& advance(std::size_t len) { ptr += len; return *this; };
+    template<class U> auto cast() { return aligner_impl<U>{align<U>(ptr)}; }
+    template<class U> auto get() { return cast<U>().ptr; }
+    T* ptr;
+};
+
+template<class T> auto aligner(T* t) { return aligner_impl<T>{t}; }
+template<class T> auto aligner(const T* t) { return aligner_impl<T>{const_cast<T*>(t)}; }
+template<class T> auto aligner(T* t, std::size_t len) { return aligner_impl<T>{t}.advance(len); }
+template<class T> auto aligner(const T* t, std::size_t len) { return aligner_impl<T>{const_cast<T*>(t)}.advance(len); }
+
+template<class T>
 struct ArrayBuilder
 {
     ArrayBuilder(std::size_t size) : m_size(size) {}
@@ -93,7 +107,7 @@ template<class T> struct SizedArray
     T* const m_end;
 };
 
-template<class T> struct AdjacentArray
+template<class T, int El = -1> struct AdjacentArray
 {
     AdjacentArray(ArrayBuilder<T>&&) {}
 
@@ -104,11 +118,14 @@ template<class T> struct AdjacentArray
     template<class Derived>
     auto begin(const Derived* ptr) const
     {
-        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
+        if constexpr (El == -1)
+            return aligner(ptr).advance(1).template get<T>();
+        else
+            return aligner(ptr->template end<El>()).template get<T>();
     }
 };
 
-template<class T> struct SizedAdjacentArray
+template<class T, int El = -1> struct SizedAdjacentArray
 {
     SizedAdjacentArray(ArrayBuilder<T>&& aph) : m_end(aph.end()) {}
 
@@ -119,7 +136,10 @@ template<class T> struct SizedAdjacentArray
     template<class Derived>
     auto begin(const Derived* ptr) const
     {
-        return static_cast<T*>(static_cast<void*>(const_cast<Derived*>(ptr+1)));
+        if constexpr (El == -1)
+            return aligner(ptr).advance(1).template get<T>();
+        else
+            return aligner(ptr->template end<El>()).template get<T>();
     }
 
     template<class Derived>
@@ -184,12 +204,12 @@ template<class T> struct GetAlignmentRequirement<T, typename void_<typename is_f
 template<class... Types>
 struct CollectAlignment
 {
-    static constexpr auto value = std::max({GetAlignmentRequirement<Types>::value...}); 
+    static constexpr auto value = std::max({GetAlignmentRequirement<Types>::value...});
 };
 
 template<class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T>::type...>
-{ 
+{
   private:
     using Base = std::tuple<typename TransformUnboundedArrays<T>::type...>;
     using Base::Base;

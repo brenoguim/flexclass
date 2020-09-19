@@ -68,6 +68,7 @@ TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
     fc::deleet(r);
 }
 
+namespace t1 {
 enum Members { E1, E2, E3 };
 struct MyArray
 {
@@ -80,7 +81,9 @@ struct MyArray
     template<class Derived>
     auto begin(const Derived* ptr) const
     {
-        return fc::align<long>(ptr->template begin<E2>() + ptr->template get<E1>());
+        auto e2begin = ptr->template begin<E2>();
+        auto e2len = ptr->template get<E1>();
+        return fc::aligner(e2begin, e2len).template get<long>();
     }
 };
 
@@ -92,3 +95,39 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[saniti
     r->begin<E3>()[0] = 12983;
     fc::deleet(r);
 }
+}
+
+
+namespace t2 {
+enum Members { E1, E2, E3 };
+struct MyArray1
+{
+    MyArray1(fc::ArrayBuilder<char>&&) {}
+
+    using type = char;
+    using fc_array_kind = fc::sized;
+    enum { array_alignment = alignof(char) };
+
+    template<class Derived>
+    auto begin(const Derived* ptr) const
+    {
+        return fc::aligner(ptr,1).template get<char>();
+    }
+
+    template<class Derived>
+    auto end(const Derived* ptr) const
+    {
+        return begin(ptr) + ptr->template get<E1>();
+    }
+};
+
+TEST_CASE( "Test co-dependent array", "[sanitizer]" )
+{
+    using Message = fc::FlexibleLayoutClass<char, MyArray1, fc::AdjacentArray<long, E2>>;
+
+    auto r = Message::niw(1, 1, 1);
+    r->begin<E3>()[0] = 12983;
+    fc::deleet(r);
+}
+}
+
