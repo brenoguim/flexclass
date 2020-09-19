@@ -114,38 +114,40 @@ template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
 {
-    using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
     enum Members {RefCount, Data};
+    struct Impl : public fc::FlexibleLayoutClass<Impl, unsigned, T[]> {
+        using Base = fc::FlexibleLayoutClass<Impl, unsigned, T[]>;
+        using Base::Base;
+    };
+
   public:
     /* Interesting public API */
-    SharedArray make(std::size_t len) { return Impl::niw(/*num references*/1, len); }
+    static SharedArray make(std::size_t len) { return {Impl::niw(/*num references*/1, len)}; }
     
-    decltype(auto) operator[](std::size_t i) { return m_data->get<Data>()[i]; }
-    decltype(auto) operator[](std::size_t i) const { return m_data->get<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) { return m_data->template get<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) const { return m_data->template get<Data>()[i]; }
 
     /* Boilerplate */
     SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
     SharedArray(const SharedArray& other) { decr(); m_data = other.m_data; incr(); }
-    SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); }
-    SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); }
-    ~SharedArray() { decr() }
+    SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); return *this; }
+    SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); return *this; }
+    ~SharedArray() { decr(); }
   private:
-    void incr() { m_data->get<RefCount>()++; }
-    bool decr() { if (m_data && m_data->get<RefCount>()-- == 1) Impl::deleet(m_data); }
+    SharedArray(Impl* data) : m_data(data) {}
+    void incr() { m_data->template get<RefCount>()++; }
+    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::deleet(m_data); }
     Impl* m_data {nullptr};
-}
+};
 ```
-todo: check this implementation.
+Play with this example in https://godbolt.org/z/vzKGv9
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
-    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, unsigned, T[]>;
-    enum Members { RefCount, Size, Data };
+    enum Members {RefCount, Size, Data};
+    struct Impl : public fc::FlexibleLayoutClass<Impl, std::atomic<unsigned>, unsigned, T[]> {
+    ...
 ```
-
-
-
-
 
 # TODO/Known issues
 - Sometimes the begin of an array can be inferred from the class state. Implement a customization infrastructure to query the class in such case.
