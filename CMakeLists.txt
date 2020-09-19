@@ -4,7 +4,6 @@ include(cmake/Deploy.cmake)
 
 project(Flexclass CXX)
 
-#option(FLEXCLASS_BUILD_EXAMPLES "Whether to build the examples" ON)
 option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
 
 set(FLEXCLASS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/flexclass")
