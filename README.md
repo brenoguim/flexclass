@@ -83,7 +83,7 @@ Which will generate the following layout:
 |[int* const] [std::string] [std::string* const] [std::string* const] [bool]| [int] ... [int] [std::string] ... [std::string]
 |                                                                           |
 |                                                                           |
-|                               Message                                     |   
+|                               Message                                     |
 ```
 
 Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
@@ -123,11 +123,11 @@ class SharedArray<T[]>
 {
     enum Members {RefCount, Data};
     using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
-    
+
   public:
     /* Interesting public API */
     static SharedArray make(std::size_t len) { return {Impl::niw(/*num references*/1, len)}; }
-    
+
     decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
     decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
 
