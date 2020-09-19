@@ -54,8 +54,10 @@ template<class T> struct UnsizedArray
     using type = T;
     using fc_array_kind = unsized;
 
-    operator T*() const { return m_begin; }
-    T* get() const { return m_begin; }
+    template<class Derived>
+    auto begin(const Derived* ptr) const { return m_begin; }
+
+    auto begin() const { return m_begin; }
 
     T* const m_begin;
 };
@@ -67,9 +69,14 @@ template<class T> struct SizedArray
     using type = T;
     using fc_array_kind = sized;
 
+    template<class Derived>
+    auto begin(const Derived* ptr) const { return m_begin; }
+
+    template<class Derived>
+    auto end(const Derived* ptr) const { return m_end; }
+
     auto begin() const { return m_begin; }
     auto end() const { return m_end; }
-    auto size() const { return end() - begin(); }
 
     T* const m_begin;
     T* const m_end;
@@ -149,10 +156,14 @@ class FlexibleLayoutBase : public std::tuple<typename TransformUnboundedArrays<T
     ~FlexibleLayoutBase() = default;
 
   public:
-    template<auto e> auto& get() { return std::get<e>(*this); }
-    template<auto e> auto& get() const { return std::get<e>(*this); }
+    template<auto e> decltype(auto) get() { return std::get<e>(*this); }
+    template<auto e> decltype(auto) get() const { return std::get<e>(*this); }
 
     template<auto e> decltype(auto) begin() const { return std::get<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() const { return std::get<e>(*this).begin(this); }
+
+    template<auto e> decltype(auto) begin() { return std::get<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() { return std::get<e>(*this).begin(this); }
 
     template<class... Args>
     static auto niw(Args&&... args)

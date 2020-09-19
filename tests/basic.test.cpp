@@ -93,11 +93,11 @@ TEST_CASE( "Manipulate a FlexibleArrayClass directly", "[basic]" )
 
     auto r = Message::niw('\0', 100, false);
     r->get<0>() = 'a';
-    r->get<1>()[0] = 120391409823;
+    r->begin<1>()[0] = 120391409823;
     r->get<2>() = true;
 
     CHECK(r->get<0>() == 'a');
-    CHECK(r->get<1>()[0] == 120391409823);
+    CHECK(r->begin<1>()[0] == 120391409823);
     CHECK(r->get<2>() == true);
 
     fc::deleet(r);
