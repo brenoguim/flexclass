@@ -142,7 +142,7 @@ Play with this example in https://godbolt.org/z/WKhf5f
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
     enum Members {RefCount, Size, Data};
-    struct Impl : public fc::FlexibleLayoutBase<Impl, std::atomic<unsigned>, unsigned, T[]> {
+    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, unsigned, T[]>;
     ...
 ```
 
