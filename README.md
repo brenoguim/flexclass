@@ -132,12 +132,12 @@ class SharedArray<T[]>
     ~SharedArray() { decr(); }
   private:
     SharedArray(Impl* data) : m_data(data) {}
-    void incr() { m_data->template get<RefCount>()++; }
+    void incr() { if (m_data) m_data->template get<RefCount>()++; }
     void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::deleet(m_data); }
     Impl* m_data {nullptr};
 };
 ```
-Play with this example in https://godbolt.org/z/nzK3fM
+Play with this example in https://godbolt.org/z/WKhf5f
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
