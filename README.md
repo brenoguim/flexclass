@@ -57,13 +57,13 @@ To build the layout `Flexclass` inspects the argument list, finds `char[]` and u
 
 The layout of the `Message` is:
 ```
-                     _________
-                    |         |
-                    |         V
-|[std::string] [char* const]| [char] [char] [char] ... [char]
-|                           |
-|                           |
-|         Message           |
+                   _____
+                  |     |
+                  |     V
+|[std::string] [char*]| [char] [char] [char] ... [char]
+|                     |
+|                     |
+|      Message        |
 ```
 
 `Flexclass` is not limited to one array, so the following declaration is perfectly valid:
@@ -74,16 +74,16 @@ struct Message : public fc::FlexibleBase<Message, int[], std::string, std::strin
 Which will generate the following layout:
 
 ```
-                                                             _______________________________________________________________
-                                                            |                                                               |
-                                       _____________________|_________________________________                              |
-                                      |                     |                                 |                             |
-       _______________________________|_____________________|_________________                |                             |
-      |                               |                     |                 V               V                             V
-|[int* const] [std::string] [std::string* const] [std::string* const] [bool]| [int] ... [int] [std::string] ... [std::string]
-|                                                                           |
-|                                                                           |
-|                               Message                                     |
+                                           _______________________________________________________________
+                                          |                                                               |
+                              ____________|_________________________________                              |
+                             |            |                                 |                             |
+     ________________________|____________|_________________                |                             |
+    |                        |            |                 V               V                             V
+|[int*] [std::string] [std::string*] [std::string*] [bool]| [int] ... [int] [std::string] ... [std::string]
+|                                                         |
+|                                                         |
+|                       Message                           |
 ```
 
 Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
