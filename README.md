@@ -185,6 +185,7 @@ FlexibleLayoutBase::make(Args... args)
     // and Array does not have such constructor.
     
     // To workaround that, we create an intermediate representation, with each Array<T> converted to ArrayBuilder<T>
+    //    other T are transformed into an "Ignore" class which is just created from any parameter, and ignores it
     using Intermediate = std::tuple< /* Use Base but convert Array types to ArrayBuilder */>;
 
     // Now we can instantiate the intermediate type:
@@ -201,8 +202,13 @@ FlexibleLayoutBase::make(Args... args)
     // Each ArrayBuilder is now provided with the storage for it to create the array it wants to manage
     // foreach (ar : ArrayBuilders) ar.neededBytes(storage);
     
-    // Finally we create the "Base" tuple from the intermediate representation
-    return new (storage) Base(std::move(ir));
+    // Finally we create the "Base" tuple from the user arguments. Array types will ignore the "int" type being passed
+    auto r = new (storage) Base(std::move(ir));
+
+    // Before returning, we iterate on the intermediate representation and the Base assigning array locations
+    foreach ([b, i] : [*r, ir]) { b.setLocation(i.begin(), i.end()); }
+
+    return r;
 }
 ```
 
