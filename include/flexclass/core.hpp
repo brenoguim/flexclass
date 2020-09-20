@@ -85,7 +85,8 @@ template<class T> struct is_fc_array<T, typename void_<typename T::fc_handle>::t
     using enable = T;
 };
 
-template<class T, class = void> struct PreImplConverter { using type = T; };
+struct Ignore { template<class T> Ignore(T&&) {} };
+template<class T, class = void> struct PreImplConverter { using type = Ignore; };
 template<class T> struct PreImplConverter<T[], void> { using type = ArrayBuilder<T>; };
 template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
 { using type = ArrayBuilder<typename T::type>; };
@@ -96,6 +97,16 @@ namespace detail
     void for_each(T&& t, F f, std::integer_sequence<int, Is...>)
     {
         auto l = { (f(std::get<Is>(t)), 0)... };
+    }
+
+    template<int I, int N, typename T1, typename T2, typename F>
+    void for_each_zipped(T1&& t1, T2&& t2, F f)
+    {
+        if constexpr (I != N)
+        {
+            f(std::get<I>(t1), std::get<I>(t2));
+            for_each_zipped<I+1, N, T1, T2, F>(t1, t2, f);
+        }
     }
 }
 
@@ -109,6 +120,12 @@ template<typename... Ts, typename F>
 void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
 {
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
+}
+
+template<int I, typename T1, typename T2, typename F>
+void for_each_zipped(T1& t1, T2& t2, F f)
+{
+    detail::for_each_zipped<0, I>(t1, t2, f);
 }
 
 template<class T, class = void> struct GetAlignmentRequirement { static constexpr auto value = alignof(T); };
@@ -149,7 +166,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
         static_assert(sizeof(Derived) == sizeof(FlexibleLayoutBase));
 
         using PreImpl = std::tuple<typename PreImplConverter<T>::type...>;
-        PreImpl pi(std::forward<Args>(args)...);
+        PreImpl pi(args...);
 
         std::size_t numBytesForArrays = 0;
         for_each_in_tuple(pi,
@@ -171,7 +188,15 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
 
         assert(numBytesForArrays == 0);
 
-        return new (implBuffer) Derived(std::move(pi));
+        auto ret = new (implBuffer) Derived(std::forward<Args>(args)...);
+
+        for_each_zipped<sizeof...(T)>(*ret, pi,
+            []<class U, class K>(U& u, const K& k) {
+                if constexpr (is_array_placeholder<K>::value)
+                    u.setLocation(k.begin(), k.end());
+            });
+
+        return ret;
     }
 
     static void destroy(const Derived* p)

@@ -7,7 +7,8 @@ namespace fc
 
 template<class T> struct Array
 {
-    Array(ArrayBuilder<T>&& aph) : m_begin(aph.begin()) {}
+    template<class U> Array(U&&) {}
+    void setLocation(T* begin, T* end) { m_begin = begin; }
 
     using type = T;
     using fc_handle = handle::array;
@@ -18,12 +19,13 @@ template<class T> struct Array
 
     auto begin() const { return m_begin; }
 
-    T* const m_begin;
+    T* m_begin;
 };
 
 template<class T> struct Range
 {
-    Range(ArrayBuilder<T>&& aph) : m_begin(aph.begin()), m_end(aph.end()) {}
+    template<class U> Range(U&&) {}
+    void setLocation(T* begin, T* end) { m_begin = begin; m_end = end; }
 
     using type = T;
     using fc_handle = handle::range;
@@ -38,13 +40,14 @@ template<class T> struct Range
     auto begin() const { return m_begin; }
     auto end() const { return m_end; }
 
-    T* const m_begin;
-    T* const m_end;
+    T* m_begin;
+    T* m_end;
 };
 
 template<class T, int El = -1> struct AdjacentArray
 {
-    AdjacentArray(ArrayBuilder<T>&&) {}
+    template<class U> AdjacentArray(U&&) {}
+    void setLocation(T* begin, T* end) {}
 
     using type = T;
     using fc_handle = handle::array;
@@ -62,7 +65,8 @@ template<class T, int El = -1> struct AdjacentArray
 
 template<class T, int El = -1> struct AdjacentRange
 {
-    AdjacentRange(ArrayBuilder<T>&& aph) : m_end(aph.end()) {}
+    template<class U> AdjacentRange(U&&) {}
+    void setLocation(T* begin, T* end) { m_end = end; }
 
     using type = T;
     using fc_handle = handle::range;
@@ -80,7 +84,7 @@ template<class T, int El = -1> struct AdjacentRange
     template<class Derived>
     auto end(const Derived* ptr) const { return m_end; }
 
-    T* const m_end;
+    T* m_end;
 };
 
 template<class T>

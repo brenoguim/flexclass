@@ -218,4 +218,3 @@ FlexibleLayoutBase::make(Args... args)
 - Document customization infrastructure
 - Make aligner constexpr? I suspect it can be much more efficient than it is now
 - Add support passing arguments to the array constructor
-- All inputs to `make` are moved into an intermediate representation before being moved to the actual result. So we get two moves. Get rid of that.

@@ -1,6 +1,8 @@
 #include <catch.hpp>
 #include <flexclass.hpp>
 
+#include <atomic>
+
 template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
@@ -56,7 +58,7 @@ template<class T>
 class SharedRange<T[]>
 {
     enum Members {RefCount, Data};
-    using Impl = fc::FlexibleLayoutClass<unsigned, fc::AdjacentRange<T>>;
+    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, fc::AdjacentRange<T>>;
 
   public:
     /* Interesting public API */
@@ -65,7 +67,7 @@ class SharedRange<T[]>
     auto begin() { return m_data->template begin<Data>(); }
     auto end() { return m_data->template end<Data>(); }
 
-    auto use_count() const { return m_data ? m_data->template get<RefCount>() : 0; }
+    auto use_count() const { return m_data ? m_data->template get<RefCount>().load() : 0; }
 
     /* Boilerplate */
     SharedRange(SharedRange&& other) : m_data(std::exchange(other.m_data, nullptr)) {}

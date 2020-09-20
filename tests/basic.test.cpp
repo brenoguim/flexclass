@@ -70,7 +70,8 @@ namespace t1 {
 enum Members { E1, E2, E3 };
 struct MyArray
 {
-    MyArray(fc::ArrayBuilder<long>&&) {}
+    template<class T> MyArray(T&&) {}
+    void setLocation(long*, long*) {}
 
     using type = long;
     using fc_handle = fc::handle::array;
@@ -100,7 +101,8 @@ namespace t2 {
 enum Members { E1, E2, E3 };
 struct MyArray1
 {
-    MyArray1(fc::ArrayBuilder<char>&&) {}
+    template<class T> MyArray1(T&&) {}
+    void setLocation(char*, char*) {}
 
     using type = char;
     using fc_handle = fc::handle::range;
