@@ -8,7 +8,7 @@ template<class T>
 class SharedArray<T[]>
 {
     enum Members {RefCount, Data};
-    using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
+    using Impl = fc::FlexibleClass<unsigned, T[]>;
 
   public:
     /* Interesting public API */
@@ -58,7 +58,7 @@ template<class T>
 class SharedRange<T[]>
 {
     enum Members {RefCount, Data};
-    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, fc::AdjacentRange<T>>;
+    using Impl = fc::FlexibleClass<std::atomic<unsigned>, fc::AdjacentRange<T>>;
 
   public:
     /* Interesting public API */

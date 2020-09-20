@@ -5,7 +5,7 @@
 
 TEST_CASE( "Default array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, int[]>
+    struct Message : public fc::FlexibleBase<Message, std::string, int[]>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -17,7 +17,7 @@ TEST_CASE( "Default array", "[sanitizer]" )
 
 TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, std::string[]>
+    struct Message : public fc::FlexibleBase<Message, std::string, std::string[]>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -31,7 +31,7 @@ TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
 
 TEST_CASE( "SizedArray", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
+    struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -43,7 +43,7 @@ TEST_CASE( "SizedArray", "[sanitizer]" )
 
 TEST_CASE( "Adjacent array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
+    struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -55,7 +55,7 @@ TEST_CASE( "Adjacent array", "[sanitizer]" )
 
 TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
+    struct Message : public fc::FlexibleBase<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -88,7 +88,7 @@ struct MyArray
 
 TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[sanitizer]" )
 {
-    using Message = fc::FlexibleLayoutClass<char, fc::AdjacentArray<char>, MyArray>;
+    using Message = fc::FlexibleClass<char, fc::AdjacentArray<char>, MyArray>;
 
     auto r = Message::make(1, 1, 1);
     r->begin<E3>()[0] = 12983;
@@ -123,7 +123,7 @@ struct MyArray1
 
 TEST_CASE( "Test co-dependent array", "[sanitizer]" )
 {
-    using Message = fc::FlexibleLayoutClass<char, MyArray1, fc::AdjacentArray<long, E2>>;
+    using Message = fc::FlexibleClass<char, MyArray1, fc::AdjacentArray<long, E2>>;
 
     auto r = Message::make(1, 1, 1);
     r->begin<E3>()[0] = 12983;

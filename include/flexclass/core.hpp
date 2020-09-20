@@ -140,15 +140,15 @@ struct CollectAlignment
 };
 
 template<class Derived, class... T>
-class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tuple<typename ArraySelector<T>::type...>
+class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<typename ArraySelector<T>::type...>
 {
   private:
     using Base = std::tuple<typename ArraySelector<T>::type...>;
     using Base::Base;
 
   protected:
-    using FLB = FlexibleLayoutBase;
-    ~FlexibleLayoutBase() = default;
+    using FLB = FlexibleBase;
+    ~FlexibleBase() = default;
 
   public:
     template<auto e> decltype(auto) get() { return std::get<e>(*this); }
@@ -163,7 +163,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
     template<class... Args>
     static auto make(Args&&... args)
     {
-        static_assert(sizeof(Derived) == sizeof(FlexibleLayoutBase));
+        static_assert(sizeof(Derived) == sizeof(FlexibleBase));
 
         using PreImpl = std::tuple<typename PreImplConverter<T>::type...>;
         PreImpl pi(args...);
@@ -172,11 +172,11 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
         for_each_in_tuple(pi,
             [&numBytesForArrays]<class U>(U& u) mutable {
                 if constexpr (is_array_placeholder<U>::value)
-                    numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleLayoutBase) + numBytesForArrays);
+                    numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleBase) + numBytesForArrays);
             });
 
-        auto implBuffer = ::operator new(sizeof(FlexibleLayoutBase) + numBytesForArrays);
-        void* arrayBuffer = static_cast<char*>(implBuffer) + sizeof(FlexibleLayoutBase);
+        auto implBuffer = ::operator new(sizeof(FlexibleBase) + numBytesForArrays);
+        void* arrayBuffer = static_cast<char*>(implBuffer) + sizeof(FlexibleBase);
 
         for_each_in_tuple(pi,
             [arrayBuffer, &numBytesForArrays]<class U>(U& u) mutable {
@@ -218,9 +218,9 @@ class alignas(CollectAlignment<T...>::value) FlexibleLayoutBase : public std::tu
 template<class T> void destroy(const T* p) { T::destroy(p); }
 
 template<class... Args>
-struct FlexibleLayoutClass : public FlexibleLayoutBase<FlexibleLayoutClass<Args...>, Args...>
+struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
 {
-    using FlexibleLayoutBase<FlexibleLayoutClass<Args...>, Args...>::FlexibleLayoutBase;
+    using FlexibleBase<FlexibleClass<Args...>, Args...>::FlexibleBase;
 };
 
 }

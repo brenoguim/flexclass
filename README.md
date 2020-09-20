@@ -37,7 +37,7 @@ The goal of merging these allocations is to improve performance through less `ma
 The same `Message` can be implemented with `Flexclass`:
 
 ```
-struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
+struct Message : public fc::FlexibleBase<Message, std::string, char[]>
 {
     enum Members {Header, Data};
     using FLB::FLB;
@@ -51,7 +51,7 @@ Message* msgFactory(std::string header, int dataSize)
 }
 ```
 
-In this new version, members are declared as arguments of `fc::FlexibleLayoutBase`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
+In this new version, members are declared as arguments of `fc::FlexibleBase`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
 
 To build the layout `Flexclass` inspects the argument list, finds `char[]` and understands that a `char` array must be attached to the allocation.
 
@@ -68,7 +68,7 @@ The layout of the `Message` is:
 
 `Flexclass` is not limited to one array, so the following declaration is perfectly valid:
 ```
-struct Message : public fc::FlexibleLayoutBase<Message, int[], std::string, std::string[], bool>
+struct Message : public fc::FlexibleBase<Message, int[], std::string, std::string[], bool>
 ```
 
 Which will generate the following layout:
@@ -91,7 +91,7 @@ Notice the layout contains an `end` pointer for the `std::string` array. Since `
 Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::Range` helper:
 
 ```
-struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
+struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
 ```
 
 In this case, there will be an `end` pointer to the `char` array too, giving the user methods `end()` and `size()`:
@@ -116,7 +116,7 @@ Adjacent handles deduce their `begin` from another element:
 
 ```
 enum Members { RefCount, Data1, Data2 };
-using Impl = fc::FlexibleLayoutClass<long, fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
+using Impl = fc::FlexibleClass<long, fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
 ```
 
 In this case:
@@ -142,7 +142,7 @@ template<class T>
 class SharedArray<T[]>
 {
     enum Members {RefCount, Data};
-    using Impl = fc::FlexibleLayoutClass<unsigned, T[]>;
+    using Impl = fc::FlexibleClass<unsigned, T[]>;
 
   public:
     /* Interesting public API */
@@ -168,7 +168,7 @@ class SharedArray<T[]>
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
     enum Members {RefCount, Size, Data};
-    using Impl = fc::FlexibleLayoutClass<std::atomic<unsigned>, unsigned, T[]>;
+    using Impl = fc::FlexibleClass<std::atomic<unsigned>, unsigned, T[]>;
     ...
 ```
 
@@ -176,7 +176,7 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
 
 This is a simplified implementation/pseudo-algorithm:
 ```
-FlexibleLayoutBase::make(Args... args)
+FlexibleBase::make(Args... args)
 {
     // What we call "Base" is a tuple with all types the user declared, but with T[] converted to Array handles.
     using Base = std::tuple</* Args... with T[] -> Array<T[]> */>;

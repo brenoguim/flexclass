@@ -7,7 +7,7 @@
 
 TEST_CASE( "Allocate and destroy", "[memory]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, char[]>
+    struct Message : public fc::FlexibleBase<Message, std::string, char[]>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -29,7 +29,7 @@ TEST_CASE( "Allocate and destroy", "[memory]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[memory]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::Range<char>>
+    struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -51,7 +51,7 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[memory]" )
 
 TEST_CASE( "Allocate and destroy but using an adjacent array", "[memory]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, std::string, fc::AdjacentArray<char>>
+    struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -74,7 +74,7 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[memory]" )
 
 TEST_CASE( "Using adjacent arrays", "[memory]" )
 {
-    struct Message : public fc::FlexibleLayoutBase<Message, char, fc::AdjacentArray<long>>
+    struct Message : public fc::FlexibleBase<Message, char, fc::AdjacentArray<long>>
     {
         enum Members {Header, Data};
         using FLB::FLB;
@@ -89,7 +89,7 @@ TEST_CASE( "Using adjacent arrays", "[memory]" )
 
 TEST_CASE( "Manipulate a FlexibleArrayClass directly", "[memory]" )
 {
-    using Message = fc::FlexibleLayoutClass<char, long[], bool>;
+    using Message = fc::FlexibleClass<char, long[], bool>;
 
     auto r = Message::make('\0', 100, false);
     r->get<0>() = 'a';
