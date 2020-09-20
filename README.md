@@ -208,7 +208,6 @@ FlexibleLayoutBase::make(Args... args)
 
 # TODO/Known issues
 - Improve tests
-    - All tests should run with sanitizer, except the memory allocation tests
     - Rethink how tests can be done in a more extensive and automatic way
     - Add examples as tests
 - Add CI
