@@ -104,7 +104,7 @@ std::cout << "Size: " << e - b << std::endl;
 for (auto it = b; it != e; ++it) std::cout << (int) c << std::endl;
 ```
 
-On the other hand, one can reduce the size even more by using the fact that the first array will always aligned at the end of the `Message`:
+On the other hand, one can reduce the size even more by using the fact that the first array will always be at the end of the `Message`:
 ```
 struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
 ```
