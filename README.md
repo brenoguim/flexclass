@@ -102,6 +102,19 @@ std::cout << "Size of the array is: " << m->get<Message::Data>().size() << '\n';
 for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
 ```
 
+On the other hand, one can reduce the size even more by using the fact that the first array will always aligned at the end of the `Message`:
+```
+struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
+```
+
+Which would generate the following compact layout:
+```
+|[std::string]| [char] [char] [char] ... [char]
+|             |
+|             |
+|   Message   |
+```
+
 # Feature summary
 
 ### `Range` and `Array`
