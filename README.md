@@ -94,12 +94,14 @@ Storing the size is sometimes useful, so the user can force the type to hold the
 struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
 ```
 
-In this case, there will be an `end` pointer to the `char` array too, giving the user methods `end()` and `size()`:
+In this case, there will be an `end` pointer to the `char` array too, giving the user method `end()`:
 ```
-std::cout << "Size of the array is: " << m->get<Message::Data>().size() << '\n';
+auto b = m->begin<Message::Data>();
+auto e = m->end<Message::Data>();
 
-// Print all chars as ints:
-for (char c : m->get<Message::Data>()) std::cout << static_cast<int>(c) << ' ';
+std::cout << "Size: " << e - b << std::endl;
+
+for (auto it = b; it != e; ++it) std::cout << (int) c << std::endl;
 ```
 
 On the other hand, one can reduce the size even more by using the fact that the first array will always aligned at the end of the `Message`:
