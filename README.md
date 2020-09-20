@@ -233,7 +233,6 @@ FlexibleBase::make(Args... args)
 
 # TODO/Known issues
 - Improve testing: Create various tests for `Array`, `Range`, `AdjacentArray` and `AdjacentRange`
-- Add CI
 - clang-format
 - Add range-for support for sized arrays
 - Support arrays before the base
