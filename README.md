@@ -209,7 +209,6 @@ FlexibleLayoutBase::make(Args... args)
 # TODO/Known issues
 - Improve tests
     - Rethink how tests can be done in a more extensive and automatic way
-    - Add examples as tests
 - Add CI
 - clang-format
 - Add range-for support for sized arrays
