@@ -145,7 +145,7 @@ Cost:
 
 # Cool Applications
 
-## Shared array
+## Shared Array
 
 A shared array implementation needs a reference counter and the data (in this case an array). So it can be modeled as:
 
@@ -180,6 +180,13 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
     ...
 ```
 [See the full example here](../master/tests/shared_array_example.test.cpp)
+
+
+## Variant Array
+
+TODO: Add an explanation about the variant array
+[See the full example here](../master/tests/variant_array_example.test.cpp)
+
 
 # How `Flexclass` works
 
