@@ -1,7 +1,7 @@
 # Flexclass v0.1
 A library for structures with flexible layout.
 
-# Problem statement
+## Problem statement
 
 `C++` offers the `struct` or `class` as a way to group objects and abstract complexity. However, sometimes that leads to suboptimal designs:
 
@@ -32,7 +32,7 @@ It is a rather common technique to group these allocations together. Somes examp
 
 The goal of merging these allocations is to improve performance through less `malloc` calls, improving locality and reducing fragmentation.
 
-# Enter Flexclass
+## Enter Flexclass
 
 The same `Message` can be implemented with `Flexclass`:
 
@@ -117,7 +117,7 @@ Which would generate the following compact layout:
 |   Message   |
 ```
 
-# Feature summary
+## Feature summary
 
 ### `Range` and `Array`
 - `Range<T>` requests pointers to both `begin` and `end` of the array (cost: 2 pointers)
@@ -145,9 +145,9 @@ Cost:
 ### Raw `T[]`
 - `T[]` will translate to `Array<T>` if `T` is trivially-destructible and `Range<T>` otherwise
 
-# Cool Applications
+## Cool Applications
 
-## Shared Array
+### Shared Array
 
 A shared array implementation needs a reference counter and the data (in this case an array). So it can be modeled as:
 
@@ -184,14 +184,14 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
 [See the full example here](../master/tests/shared_array_example.test.cpp)
 
 
-## Variant Array
+### Variant Array
 
 TODO: Add a description for this example
 
 [See the full example here](../master/tests/variant_array_example.test.cpp)
 
 
-# How `Flexclass` works
+## How `Flexclass` works
 
 This is a simplified implementation/pseudo-algorithm:
 ```
@@ -231,7 +231,7 @@ FlexibleBase::make(Args... args)
 }
 ```
 
-# TODO/Known issues
+## TODO/Known issues
 - Improve testing: Create various tests for `Array`, `Range`, `AdjacentArray` and `AdjacentRange`
 - Support constructors from either Base or arrays that can throw exceptions
 - clang-format
