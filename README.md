@@ -128,8 +128,8 @@ Adjacent handles deduce their `begin` from another element:
 - They can also be adjacent to another array passed as second template argument:
 
 ```
-enum Members { RefCount, Data1, Data2 };
-using Impl = fc::FlexibleClass<long, fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
+enum Members                  {RefCount,  Data1,                   Data2 };
+using Impl = fc::FlexibleClass<long,      fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
 ```
 
 In this case:
