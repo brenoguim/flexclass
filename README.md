@@ -184,7 +184,8 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
 
 ## Variant Array
 
-TODO: Add an explanation about the variant array
+TODO: Add a description for this example
+
 [See the full example here](../master/tests/variant_array_example.test.cpp)
 
 
