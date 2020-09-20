@@ -154,7 +154,7 @@ template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
 {
-    enum Members {RefCount, Data};
+    enum Members                  {RefCount, Data};
     using Impl = fc::FlexibleClass<unsigned, T[]>;
 
   public:
@@ -164,12 +164,7 @@ class SharedArray<T[]>
     decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
     decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
 
-    /* Boilerplate */
-    SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
-    SharedArray(const SharedArray& other) { m_data = other.m_data; incr(); }
-    SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); return *this; }
-    SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); return *this; }
-    ~SharedArray() { decr(); }
+    /* Boilerplate special member functions */
   private:
     SharedArray(Impl* data) : m_data(data) {}
     void incr() { if (m_data) m_data->template get<RefCount>()++; }
@@ -180,10 +175,11 @@ class SharedArray<T[]>
 
 Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
 ```
-    enum Members {RefCount, Size, Data};
+    enum Members                   {RefCount,             Size,     Data};
     using Impl = fc::FlexibleClass<std::atomic<unsigned>, unsigned, T[]>;
     ...
 ```
+[See the full example here](../master/tests/shared_array_example.test.cpp)
 
 # How `Flexclass` works
 
