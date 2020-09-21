@@ -232,9 +232,7 @@ FlexibleBase::make(Args... args)
 ```
 
 ## TODO/Known issues
-- Improve testing: Create various tests for `Array`, `Range`, `AdjacentArray` and `AdjacentRange`
 - Support constructors from either Base or arrays that can throw exceptions
-- Add RAII wrapper
 - Allocator support
 - Provide a way to group "array sizes" with their type. The constructor is disconnected
 - clang-format
