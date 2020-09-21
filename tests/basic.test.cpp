@@ -244,7 +244,7 @@ TEST_CASE( "char followed by AdjacentArray<long> to check that long* is aligned 
     for (int i = 0; i < 1000; ++i) CHECK(m->begin<1>()[i] == i);
 }
 
-TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[sanitizer]" )
+TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignment]" )
 {
     enum Members {A, B, C};
     auto m = fc::FlexibleClass<char, fc::AdjacentRange<char>, fc::AdjacentArray<long, 1>>::make_unique(13, 1, 1);
