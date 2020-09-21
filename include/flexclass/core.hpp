@@ -273,7 +273,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
                 if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
                 if constexpr (!std::is_trivially_destructible<typename U::type>::value)
                 {
-                    std::destroy(u.begin(p), u.end(p));
+                    reverse_destroy(u.begin(p), u.end(p));
                 }
             });
         p->~Derived();

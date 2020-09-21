@@ -269,9 +269,11 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignm
 int s_throwerId = 0;
 std::vector<int> s_throwerStack;
 int s_throwAtId = 0;
+bool s_trackStack = false;
 
 void resetToThrowAt(int i)
 {
+    s_trackStack = false;
     s_throwerId = 0;
     s_throwerStack.clear();
     s_throwAtId = i;
@@ -300,6 +302,8 @@ struct Thrower
 
     ~Thrower()
     {
+        if (s_trackStack)
+            CHECK(s_throwerStack.back() == m_id);
         s_throwerStack.pop_back();
     }
 
@@ -363,4 +367,12 @@ TEST_CASE( "Strong exception guarantees when member array throws on constructor,
     }
     CHECK(cnt == 10);
     checkReset();
+}
+
+TEST_CASE( "Array elements should be destroyed in the reverse order of creation within the same array", "[exception]" )
+{
+    resetToThrowAt(10000);
+    s_trackStack = true;
+    std::string initStr = "default initialized string for testing";
+    auto m = fc::FlexibleClass<std::string, Thrower[]>::make_unique(initStr, 10);
 }
