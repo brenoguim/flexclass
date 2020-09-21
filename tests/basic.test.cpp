@@ -5,11 +5,8 @@
 
 TEST_CASE( "Default array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, int[]>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
+    enum Members {Header, Data};
+    using Message = fc::FlexibleClass<std::string, int[]>;
 
     auto r = Message::make("SmallMsg", 1000);
     fc::destroy(r);
@@ -17,25 +14,19 @@ TEST_CASE( "Default array", "[sanitizer]" )
 
 TEST_CASE( "Default array with non-trivial type", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, std::string[]>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
+    enum Members {Header, Data};
+    using Message = fc::FlexibleClass<std::string, std::string[]>;
 
     auto r = Message::make("SmallMsg", 1000);
     int i = 0;
-    for (auto& str : r->get<Message::Data>()) str.resize(i++);
+    for (auto& str : r->get<Data>()) str.resize(i++);
     fc::destroy(r);
 }
 
 TEST_CASE( "SizedArray", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
+    enum Members {Header, Data};
+    using Message = fc::FlexibleClass<std::string, fc::Range<int>>;
 
     auto r = Message::make("SmallMsg", 1000);
     fc::destroy(r);
@@ -43,11 +34,8 @@ TEST_CASE( "SizedArray", "[sanitizer]" )
 
 TEST_CASE( "Adjacent array", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
+    enum Members {Header, Data};
+    using Message = fc::FlexibleClass<std::string, int[]>;
 
     auto r = Message::make("SmallMsg", 1000);
     fc::destroy(r);
@@ -55,14 +43,11 @@ TEST_CASE( "Adjacent array", "[sanitizer]" )
 
 TEST_CASE( "Adjacent array char->long to verify alignment", "[sanitizer]" )
 {
-    struct Message : public fc::FlexibleBase<Message, char, fc::AdjacentArray<long>>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
+    enum Members {Header, Data};
+    using Message = fc::FlexibleClass<char, long[]>;
 
     auto r = Message::make('\0', 1000);
-    for (int i = 0; i < 1000; ++i) r->begin<Message::Data>()[i] = 1;
+    for (int i = 0; i < 1000; ++i) r->begin<Data>()[i] = 1;
     fc::destroy(r);
 }
 
@@ -75,7 +60,7 @@ struct MyArray
 
     using type = long;
     using fc_handle = fc::handle::array;
-    enum { array_alignment = alignof(long) };
+    static constexpr auto array_alignment = alignof(type);
 
     template<class Derived>
     auto begin(const Derived* ptr) const
@@ -106,7 +91,7 @@ struct MyArray1
 
     using type = char;
     using fc_handle = fc::handle::range;
-    enum { array_alignment = alignof(char) };
+    static constexpr auto array_alignment = alignof(type);
 
     template<class Derived>
     auto begin(const Derived* ptr) const
