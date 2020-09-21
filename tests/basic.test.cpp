@@ -3,6 +3,17 @@
 
 #include <cstring>
 
+TEST_CASE( "Empty class", "[Edge cases]" )
+{
+    using Message = fc::FlexibleClass<>;
+
+    static_assert(sizeof(Message) == 1, "Size of empty message should be the minimum required by C++ - 1 byte");
+    static_assert(Message::numMembers() == 0);
+
+    // Check that it's possible to instantiate and destroy
+    fc::destroy(Message::make());
+}
+
 TEST_CASE( "Default array", "[sanitizer]" )
 {
     enum Members {Header, Data};

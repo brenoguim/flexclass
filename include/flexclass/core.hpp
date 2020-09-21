@@ -96,7 +96,8 @@ namespace detail
     template<typename T, typename F, int... Is>
     void for_each(T&& t, F f, std::integer_sequence<int, Is...>)
     {
-        auto l = { (f(std::get<Is>(t)), 0)... };
+        if constexpr (std::tuple_size<std::remove_reference_t<T>>::value > 0)
+            auto l = { (f(std::get<Is>(t)), 0)... };
     }
 
     template<int I, int N, typename T1, typename T2, typename F>
@@ -136,7 +137,7 @@ template<class T> struct GetAlignmentRequirement<T, typename void_<typename is_f
 template<class... Types>
 struct CollectAlignment
 {
-    static constexpr auto value = std::max({GetAlignmentRequirement<Types>::value...});
+    static constexpr auto value = std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 
 template<class Derived, class... T>
@@ -151,6 +152,8 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
     ~FlexibleBase() = default;
 
   public:
+    static constexpr auto numMembers() { return std::tuple_size<Base>::value; }
+
     template<auto e> decltype(auto) get() { return std::get<e>(*this); }
     template<auto e> decltype(auto) get() const { return std::get<e>(*this); }
 
