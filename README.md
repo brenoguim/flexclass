@@ -234,11 +234,13 @@ FlexibleBase::make(Args... args)
 ## TODO/Known issues
 - Improve testing: Create various tests for `Array`, `Range`, `AdjacentArray` and `AdjacentRange`
 - Support constructors from either Base or arrays that can throw exceptions
+- Add RAII wrapper
+- Allocator support
+- Provide a way to group "array sizes" with their type. The constructor is disconnected
 - clang-format
 - Add range-for support for sized arrays
 - Support arrays before the base
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
-- Add RAII wrapper
 - Document customization infrastructure
 - Make aligner constexpr? I suspect it can be much more efficient than it is now
 - Add support passing arguments to the array constructor
