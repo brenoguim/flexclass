@@ -16,6 +16,29 @@ struct range {};
 struct array {};
 }
 
+template<class T>
+struct ArrayDeleter
+{
+    ~ArrayDeleter()
+    {
+        auto b = m_begin;
+        auto e = m_end;
+        if (b != e)
+        {
+            while (1)
+            {
+                e--;
+                e->~T();
+                if (e == b) break;
+            }
+        }
+    }
+
+    void setBegin(T* begin) { m_begin = m_end = begin; }
+    void increment() { ++m_end; }
+    T *m_begin {nullptr}, *m_end {nullptr};
+};
+
 inline void* incr(void* in, std::size_t len) { return static_cast<char*>(in) + len; }
 
 template<class T>
@@ -44,14 +67,22 @@ struct ArrayBuilder
 {
     ArrayBuilder(std::size_t size) : m_size(size) {}
 
-    void consume(void*& buf, std::size_t& space)
+    void consume(ArrayDeleter<T>& deleter, void*& buf, std::size_t& space)
     {
         m_ptr = std::align(alignof(T), numBytes(), buf, space);
         assert(m_ptr);
         space -= numBytes();
         buf = incr(buf, numBytes());
 
-        for (auto& el : *this) new (&el) T;
+        auto b = begin();
+        auto e = end();
+
+        if constexpr (!noexcept(T())) deleter.setBegin(b);
+        for (; b != e; ++b)
+        {
+            new (b) T;
+            if constexpr (!noexcept(T())) deleter.increment();
+        }
     }
 
     std::size_t numRequiredBytes(std::size_t offset)
@@ -85,11 +116,16 @@ template<class T> struct is_fc_array<T, typename void_<typename T::fc_handle>::t
     using enable = T;
 };
 
-struct Ignore { template<class T> Ignore(T&&) {} };
+struct Ignore { Ignore() = default; template<class T> Ignore(T&&) {} };
 template<class T, class = void> struct PreImplConverter { using type = Ignore; };
 template<class T> struct PreImplConverter<T[], void> { using type = ArrayBuilder<T>; };
 template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
 { using type = ArrayBuilder<typename T::type>; };
+
+template<class T, class = void> struct ArrayDeleterConverter { using type = Ignore; };
+template<class T> struct ArrayDeleterConverter<T[], void> { using type = ArrayDeleter<T>; };
+template<class T> struct ArrayDeleterConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
+{ using type = ArrayDeleter<typename T::type>; };
 
 namespace detail
 {
@@ -193,11 +229,14 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
         auto implBuffer = std::unique_ptr<void, DeleteFn>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
         void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
 
-        for_each_in_tuple(pi,
-            [arrayBuffer, &numBytesForArrays]<class U>(U& u) mutable {
+        using ArrayDeleters = std::tuple<typename ArrayDeleterConverter<T>::type...>;
+        ArrayDeleters arrayDeleters;
+
+        for_each_zipped<sizeof...(T)>(pi, arrayDeleters,
+            [arrayBuffer, &numBytesForArrays]<class U, class K>(U& u, K& aDeleter) mutable {
                 if constexpr (is_array_placeholder<U>::value)
                 {
-                    u.consume(arrayBuffer, numBytesForArrays);
+                    u.consume(aDeleter, arrayBuffer, numBytesForArrays);
                 }
             });
 
@@ -206,9 +245,19 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
 
         for_each_zipped<sizeof...(T)>(*ret, pi,
-            []<class U, class K>(U& u, const K& k) {
+            []<class U, class K>(U& u, K& k) {
                 if constexpr (is_array_placeholder<K>::value)
+                {
                     u.setLocation(k.begin(), k.end());
+                }
+            });
+
+        for_each_zipped<sizeof...(T)>(*ret, arrayDeleters,
+            []<class U, class K>(U& u, K& k) {
+                if constexpr (is_array_placeholder<K>::value)
+                {
+                    k.setBegin(nullptr);
+                }
             });
 
         implBuffer.release();

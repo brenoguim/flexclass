@@ -232,7 +232,6 @@ FlexibleBase::make(Args... args)
 ```
 
 ## TODO/Known issues
-- Support constructors from either Base or arrays that can throw exceptions
 - Allocator support
 - Provide a way to group "array sizes" with their type. The constructor is disconnected
 - clang-format
@@ -242,3 +241,5 @@ FlexibleBase::make(Args... args)
 - Document customization infrastructure
 - Make aligner constexpr? I suspect it can be much more efficient than it is now
 - Add support passing arguments to the array constructor
+- Guarantee reverse order destruction between arrays on exception
+    - It seems that if we are creating arrays A[] , B[], C[] and one of C() throws an exception, we will destroy them in the order A[], B[], C[], being each of those destroyed in the reverse order. We would like to have the destruction in the order C[], B[], A[], and each of those in the reverse order too.

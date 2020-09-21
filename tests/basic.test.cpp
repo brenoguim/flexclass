@@ -265,9 +265,51 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignm
     CHECK(*m->begin<C>() == 84);
 }
 
+
+int s_throwerId = 0;
+std::vector<int> s_throwerStack;
+int s_throwAtId = 0;
+
+void resetToThrowAt(int i)
+{
+    s_throwerId = 0;
+    s_throwerStack.clear();
+    s_throwAtId = i;
+}
+
+void checkReset()
+{
+    CHECK(s_throwerStack.empty());
+}
+
+struct Thrower
+{
+    Thrower()
+    {
+        m_id = s_throwerId;
+
+        if (m_id == s_throwAtId)
+            throw std::runtime_error(std::to_string(m_id));
+
+        m_someMemory = std::make_unique<int>(13);
+
+        s_throwerStack.push_back(s_throwerId++);
+    }
+
+    Thrower(std::string) : Thrower() {}
+
+    ~Thrower()
+    {
+        s_throwerStack.pop_back();
+    }
+
+    std::unique_ptr<int> m_someMemory;
+    int m_id;
+};
+
 TEST_CASE( "Strong exception guarantees when member throws on constructor", "[exception]" )
 {
-    struct Thrower { Thrower(std::string str) { throw std::runtime_error(str); } };
+    resetToThrowAt(0);
 
     std::string initStr = "default initialized string for testing";
     try
@@ -276,6 +318,23 @@ TEST_CASE( "Strong exception guarantees when member throws on constructor", "[ex
     }
     catch (std::runtime_error& err)
     {
-        CHECK(err.what() == initStr);
+        CHECK(std::string("0") == err.what());
     }
+    checkReset();
+}
+
+TEST_CASE( "Strong exception guarantees when member array throws on constructor", "[exception]" )
+{
+    resetToThrowAt(15);
+
+    std::string initStr = "default initialized string for testing";
+    try
+    {
+        auto m = fc::FlexibleClass<std::string, Thrower[], Thrower[], Thrower[]>::make_unique(initStr, 10, 10, 10);
+    }
+    catch (std::runtime_error& err)
+    {
+        CHECK(std::string("15") == err.what());
+    }
+    checkReset();
 }
