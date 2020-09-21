@@ -264,3 +264,18 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignm
     CHECK(*m->begin<B>() == 42);
     CHECK(*m->begin<C>() == 84);
 }
+
+TEST_CASE( "Strong exception guarantees when member throws on constructor", "[exception]" )
+{
+    struct Thrower { Thrower(std::string str) { throw std::runtime_error(str); } };
+
+    std::string initStr = "default initialized string for testing";
+    try
+    {
+        auto m = fc::FlexibleClass<std::string, Thrower>::make_unique(initStr, initStr);
+    }
+    catch (std::runtime_error& err)
+    {
+        CHECK(err.what() == initStr);
+    }
+}

@@ -140,6 +140,8 @@ struct CollectAlignment
     static constexpr auto value = std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 
+struct DeleteFn { void operator()(void* ptr) const { ::operator delete(ptr); } };
+
 template<class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<typename ArraySelector<T>::type...>
 {
@@ -188,8 +190,8 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
                     numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleBase) + numBytesForArrays);
             });
 
-        auto implBuffer = ::operator new(sizeof(FlexibleBase) + numBytesForArrays);
-        void* arrayBuffer = static_cast<char*>(implBuffer) + sizeof(FlexibleBase);
+        auto implBuffer = std::unique_ptr<void, DeleteFn>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
+        void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
 
         for_each_in_tuple(pi,
             [arrayBuffer, &numBytesForArrays]<class U>(U& u) mutable {
@@ -201,7 +203,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
 
         assert(numBytesForArrays == 0);
 
-        auto ret = new (implBuffer) Derived(std::forward<Args>(args)...);
+        auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
 
         for_each_zipped<sizeof...(T)>(*ret, pi,
             []<class U, class K>(U& u, const K& k) {
@@ -209,6 +211,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
                     u.setLocation(k.begin(), k.end());
             });
 
+        implBuffer.release();
         return ret;
     }
 
