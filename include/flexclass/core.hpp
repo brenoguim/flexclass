@@ -6,6 +6,7 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
+#include "tuple.hpp"
 
 namespace fc
 {
@@ -142,8 +143,8 @@ namespace detail
     template<typename T, typename F, int... Is>
     void for_each(T&& t, F f, std::integer_sequence<int, Is...>)
     {
-        if constexpr (std::tuple_size<std::remove_reference_t<T>>::value > 0)
-            auto l = { (f(std::get<Is>(t)), 0)... };
+        if constexpr (std::remove_reference_t<T>::Size > 0)
+            auto l = { (f(get_element<Is>(t)), 0)... };
     }
 
     template<int I, int N, typename T1, typename T2, typename F>
@@ -151,14 +152,14 @@ namespace detail
     {
         if constexpr (I != N)
         {
-            f(std::get<I>(t1), std::get<I>(t2));
+            f(get_element<I>(t1), get_element<I>(t2));
             for_each_zipped<I+1, N, T1, T2, F>(t1, t2, f);
         }
     }
 }
 
 template<typename... Ts, typename F>
-void for_each_in_tuple(std::tuple<Ts...>& t, F f)
+void for_each_in_tuple(fc::tuple<Ts...>& t, F f)
 {
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
@@ -168,13 +169,13 @@ constexpr auto reverseIntegerSequence(std::integer_sequence<int, Is...> const &)
 { return std::integer_sequence<int, sizeof...(Is)-1-Is...>{}; }
 
 template<typename... Ts, typename F>
-void reverse_for_each_in_tuple(const std::tuple<Ts...>& t, F f)
+void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F f)
 {
     detail::for_each(t, f, reverseIntegerSequence(std::make_integer_sequence<int, sizeof...(Ts)>()));
 }
 
 template<typename... Ts, typename F>
-void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
+void for_each_in_tuple(const fc::tuple<Ts...>& t, F f)
 {
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
@@ -199,10 +200,10 @@ struct CollectAlignment
 struct DeleteFn { void operator()(void* ptr) const { ::operator delete(ptr); } };
 
 template<class Derived, class... T>
-class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<typename ArraySelector<T>::type...>
+class alignas(CollectAlignment<T...>::value) FlexibleBase : public fc::tuple<typename ArraySelector<T>::type...>
 {
   private:
-    using Base = std::tuple<typename ArraySelector<T>::type...>;
+    using Base = fc::tuple<typename ArraySelector<T>::type...>;
     using Base::Base;
 
   protected:
@@ -210,16 +211,16 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
     ~FlexibleBase() = default;
 
   public:
-    static constexpr auto numMembers() { return std::tuple_size<Base>::value; }
+    static constexpr auto numMembers() { return Base::Size; }
 
-    template<auto e> decltype(auto) get() { return std::get<e>(*this); }
-    template<auto e> decltype(auto) get() const { return std::get<e>(*this); }
+    template<auto e> decltype(auto) get() { return get_element<e>(*this); }
+    template<auto e> decltype(auto) get() const { return get_element<e>(*this); }
 
-    template<auto e> decltype(auto) begin() const { return std::get<e>(*this).begin(this); }
-    template<auto e> decltype(auto) end() const { return std::get<e>(*this).end(this); }
+    template<auto e> decltype(auto) begin() const { return get_element<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() const { return get_element<e>(*this).end(this); }
 
-    template<auto e> decltype(auto) begin() { return std::get<e>(*this).begin(this); }
-    template<auto e> decltype(auto) end() { return std::get<e>(*this).end(this); }
+    template<auto e> decltype(auto) begin() { return get_element<e>(*this).begin(this); }
+    template<auto e> decltype(auto) end() { return get_element<e>(*this).end(this); }
 
     struct DestroyFn { void operator()(Derived* ptr) const { Derived::destroy(ptr); } };
 
@@ -236,7 +237,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
     {
         static_assert(sizeof(Derived) == sizeof(FlexibleBase));
 
-        using PreImpl = std::tuple<typename PreImplConverter<T>::type...>;
+        using PreImpl = fc::tuple<typename PreImplConverter<T>::type...>;
 
         std::size_t numBytesForArrays = 0;
         {

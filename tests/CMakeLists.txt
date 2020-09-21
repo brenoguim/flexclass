@@ -1,7 +1,8 @@
 set(UNIT_TEST_LIST
-    basic 
+    basic
     shared_array_example
     variant_array_example
+    tuple
 )
 
 add_library(test_infra

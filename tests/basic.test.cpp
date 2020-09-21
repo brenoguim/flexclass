@@ -251,8 +251,8 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignm
 
     CHECK(m->get<A>() == 13);
 
-    // The alignment here is suboptimal: [1byte char] [7byte padding] [1byte char] [7byte padding] [8byte long]
-    CHECK((std::uintptr_t)&m->get<A>() == (std::uintptr_t) m->begin<B>() - 8);
+    // The alignment here is suboptimal: [1byte char] [7byte padding] [8byte char*] [1byte char] [7byte padding] [8byte long]
+    CHECK((std::uintptr_t)&m->get<A>() == (std::uintptr_t) m->begin<B>() - 16);
     CHECK((std::uintptr_t)m->begin<B>() == (std::uintptr_t) m->begin<C>() - 8);
     CHECK((std::uintptr_t)m->end<B>() == (std::uintptr_t) m->begin<C>() - 7);
 
