@@ -376,3 +376,11 @@ TEST_CASE( "Array elements should be destroyed in the reverse order of creation 
     std::string initStr = "default initialized string for testing";
     auto m = fc::FlexibleClass<std::string, Thrower[]>::make_unique(initStr, 10);
 }
+
+TEST_CASE( "Arrays should be destroyed in the reverse order", "[exception]" )
+{
+    resetToThrowAt(10000);
+    s_trackStack = true;
+    std::string initStr = "default initialized string for testing";
+    auto m = fc::FlexibleClass<std::string, Thrower[], Thrower[]>::make_unique(initStr, 1, 1);
+}

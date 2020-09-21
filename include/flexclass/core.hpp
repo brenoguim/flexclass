@@ -163,6 +163,16 @@ void for_each_in_tuple(std::tuple<Ts...>& t, F f)
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
 
+template <int ... Is>
+constexpr auto reverseIntegerSequence(std::integer_sequence<int, Is...> const &)
+{ return std::integer_sequence<int, sizeof...(Is)-1-Is...>{}; }
+
+template<typename... Ts, typename F>
+void reverse_for_each_in_tuple(const std::tuple<Ts...>& t, F f)
+{
+    detail::for_each(t, f, reverseIntegerSequence(std::make_integer_sequence<int, sizeof...(Ts)>()));
+}
+
 template<typename... Ts, typename F>
 void for_each_in_tuple(const std::tuple<Ts...>& t, F f)
 {
@@ -268,7 +278,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
     static void destroy(const Derived* p)
     {
         if (!p) return;
-        for_each_in_tuple(*p,
+        reverse_for_each_in_tuple(*p,
             [p]<class U>(U& u) {
                 if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
                 if constexpr (!std::is_trivially_destructible<typename U::type>::value)
