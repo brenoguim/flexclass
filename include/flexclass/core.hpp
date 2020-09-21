@@ -17,25 +17,32 @@ struct array {};
 }
 
 template<class T>
-struct ArrayDeleter
+void reverse_destroy(T* b, T* e)
 {
-    ~ArrayDeleter()
+    if (b != e)
     {
-        auto b = m_begin;
-        auto e = m_end;
-        if (b != e)
+        while (1)
         {
-            while (1)
-            {
-                e--;
-                e->~T();
-                if (e == b) break;
-            }
+            e--;
+            e->~T();
+            if (e == b) break;
         }
     }
+}
 
-    void setBegin(T* begin) { m_begin = m_end = begin; }
-    void increment() { ++m_end; }
+template<class T>
+struct ArrayDeleter
+{
+    ArrayDeleter(T* begin) : m_begin(begin), m_end(begin) {}
+
+    ~ArrayDeleter()
+    {
+        reverse_destroy(m_begin, m_end);
+    }
+
+    void setEnd(T* end) { m_end = end; }
+    void release() { m_begin = m_end = nullptr; }
+
     T *m_begin {nullptr}, *m_end {nullptr};
 };
 
@@ -67,22 +74,29 @@ struct ArrayBuilder
 {
     ArrayBuilder(std::size_t size) : m_size(size) {}
 
-    void consume(ArrayDeleter<T>& deleter, void*& buf, std::size_t& space)
+    ~ArrayBuilder()
     {
-        m_ptr = std::align(alignof(T), numBytes(), buf, space);
-        assert(m_ptr);
+        if (m_ptr) reverse_destroy(begin(), end());
+    }
+
+    void consume(void*& buf, std::size_t& space)
+    {
+        auto ptr = std::align(alignof(T), numBytes(), buf, space);
+        assert(ptr);
         space -= numBytes();
         buf = incr(buf, numBytes());
 
-        auto b = begin();
-        auto e = end();
+        auto b = static_cast<T*>(ptr);
+        auto e = b + m_size;
 
-        deleter.setBegin(b);
-        for (; b != e; ++b)
+        ArrayDeleter<T> deleter(b);
+        while (b != e)
         {
             new (b) T;
-            deleter.increment();
+            deleter.setEnd(++b);
         }
+        deleter.release();
+        m_ptr = ptr;
     }
 
     std::size_t numRequiredBytes(std::size_t offset)
@@ -98,6 +112,7 @@ struct ArrayBuilder
     auto numBytes() const { return m_size*sizeof(T); }
     T* begin() const { return static_cast<T*>(m_ptr); }
     T* end() const { return begin() + m_size; }
+    void release() { m_ptr = nullptr; }
 
     std::size_t m_size;
     void* m_ptr {nullptr};
@@ -121,11 +136,6 @@ template<class T, class = void> struct PreImplConverter { using type = Ignore; }
 template<class T> struct PreImplConverter<T[], void> { using type = ArrayBuilder<T>; };
 template<class T> struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
 { using type = ArrayBuilder<typename T::type>; };
-
-template<class T, class = void> struct ArrayDeleterConverter { using type = Ignore; };
-template<class T> struct ArrayDeleterConverter<T[], void> { using type = ArrayDeleter<T>; };
-template<class T> struct ArrayDeleterConverter<T, typename void_<typename is_fc_array<T>::enable>::type>
-{ using type = ArrayDeleter<typename T::type>; };
 
 namespace detail
 {
@@ -217,30 +227,28 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
         static_assert(sizeof(Derived) == sizeof(FlexibleBase));
 
         using PreImpl = std::tuple<typename PreImplConverter<T>::type...>;
-        PreImpl pi(args...);
 
         std::size_t numBytesForArrays = 0;
-        for_each_in_tuple(pi,
-            [&numBytesForArrays]<class U>(U& u) mutable {
-                if constexpr (is_array_placeholder<U>::value)
-                    numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleBase) + numBytesForArrays);
-            });
+        {
+            PreImpl pi(args...);
+
+            for_each_in_tuple(pi,
+                [&numBytesForArrays]<class U>(U& u) mutable {
+                    if constexpr (is_array_placeholder<U>::value)
+                        numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleBase) + numBytesForArrays);
+                });
+        }
 
         auto implBuffer = std::unique_ptr<void, DeleteFn>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
         void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
 
-        using ArrayDeleters = std::tuple<typename ArrayDeleterConverter<T>::type...>;
-        ArrayDeleters arrayDeleters;
+        PreImpl pi(args...);
 
-        for_each_zipped<sizeof...(T)>(pi, arrayDeleters,
-            [arrayBuffer, &numBytesForArrays]<class U, class K>(U& u, K& aDeleter) mutable {
+        for_each_in_tuple(pi,
+            [&]<class U>(U& u) mutable {
                 if constexpr (is_array_placeholder<U>::value)
-                {
-                    u.consume(aDeleter, arrayBuffer, numBytesForArrays);
-                }
+                    u.consume(arrayBuffer, numBytesForArrays);
             });
-
-        assert(numBytesForArrays == 0);
 
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
 
@@ -249,14 +257,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
                 if constexpr (is_array_placeholder<K>::value)
                 {
                     u.setLocation(k.begin(), k.end());
-                }
-            });
-
-        for_each_zipped<sizeof...(T)>(*ret, arrayDeleters,
-            []<class U, class K>(U& u, K& k) {
-                if constexpr (is_array_placeholder<K>::value)
-                {
-                    k.setBegin(nullptr);
+                    k.release();
                 }
             });
 
