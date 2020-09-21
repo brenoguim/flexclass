@@ -77,11 +77,11 @@ struct ArrayBuilder
         auto b = begin();
         auto e = end();
 
-        if constexpr (!noexcept(T())) deleter.setBegin(b);
+        deleter.setBegin(b);
         for (; b != e; ++b)
         {
             new (b) T;
-            if constexpr (!noexcept(T())) deleter.increment();
+            deleter.increment();
         }
     }
 

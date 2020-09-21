@@ -338,3 +338,29 @@ TEST_CASE( "Strong exception guarantees when member array throws on constructor"
     }
     checkReset();
 }
+
+namespace {
+    int cnt = 0;
+    struct IncrementOnDestructor
+    {
+        ~IncrementOnDestructor() { cnt++; }
+    };
+}
+
+TEST_CASE( "Strong exception guarantees when member array throws on constructor, and other arrays have noexcept constructors", "[exception]" )
+{
+    resetToThrowAt(15);
+    cnt = 0;
+
+    std::string initStr = "default initialized string for testing";
+    try
+    {
+        auto m = fc::FlexibleClass<std::string, IncrementOnDestructor[], Thrower[], Thrower[]>::make_unique(initStr, 10, 10, 10);
+    }
+    catch (std::runtime_error& err)
+    {
+        CHECK(std::string("15") == err.what());
+    }
+    CHECK(cnt == 10);
+    checkReset();
+}
