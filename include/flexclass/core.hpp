@@ -163,6 +163,16 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase : public std::tuple<ty
     template<auto e> decltype(auto) begin() { return std::get<e>(*this).begin(this); }
     template<auto e> decltype(auto) end() { return std::get<e>(*this).end(this); }
 
+    struct DestroyFn { void operator()(Derived* ptr) const { Derived::destroy(ptr); } };
+
+    using UniquePtr = std::unique_ptr<Derived, DestroyFn>;
+
+    template<class... Args>
+    static auto make_unique(Args&&... args)
+    {
+        return UniquePtr(make(std::forward<Args>(args)...));
+    }
+
     template<class... Args>
     static auto make(Args&&... args)
     {

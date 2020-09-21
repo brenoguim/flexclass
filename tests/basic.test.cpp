@@ -11,7 +11,33 @@ TEST_CASE( "Empty class", "[Edge cases]" )
     static_assert(Message::numMembers() == 0);
 
     // Check that it's possible to instantiate and destroy
-    fc::destroy(Message::make());
+    Message::make_unique();
+}
+
+TEST_CASE( "Just one array and no regular members", "[Edge cases]" )
+{
+    auto m = fc::FlexibleClass<short[]>::make_unique(1000);
+
+    CHECK(m->numMembers() == 1);
+    static_assert(std::is_same_v<decltype(m->begin<0>()), short*>);
+
+    for (int i = 0; i < 1000; ++i) m->begin<0>()[i] = i;
+    for (int i = 0; i < 1000; ++i) CHECK(m->begin<0>()[i] == i);
+}
+
+TEST_CASE( "Just one member and no array", "[Edge cases]" )
+{
+    auto initStr = "default initialized string for testing";
+    auto m = fc::FlexibleClass<std::string>::make_unique(initStr);
+
+    CHECK(m->numMembers() == 1);
+    static_assert(std::is_same_v<decltype(m->get<0>()), std::string&>);
+
+    CHECK(m->get<0>() == initStr);
+
+    auto str = "This is a rather long string to make sure it allocates";
+    m->get<0>() = str;
+    CHECK(m->get<0>() == str);
 }
 
 TEST_CASE( "Default array", "[sanitizer]" )
