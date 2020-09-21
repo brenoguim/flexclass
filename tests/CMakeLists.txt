@@ -1,6 +1,7 @@
 set(UNIT_TEST_LIST
     basic 
     shared_array_example
+    variant_array_example
 )
 
 add_library(test_infra
