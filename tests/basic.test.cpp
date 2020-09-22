@@ -310,16 +310,16 @@ struct Thrower
 
 TEST_CASE( "Strong exception guarantees when member throws on constructor", "[exception]" )
 {
-    resetToThrowAt(0);
+    resetToThrowAt(2);
 
     std::string initStr = "default initialized string for testing";
     try
     {
-        auto m = fc::FlexibleClass<std::string, Thrower>::make_unique(initStr, initStr);
+        auto m = fc::FlexibleClass<Thrower, Thrower, Thrower, Thrower, Thrower>::make_unique(initStr, initStr, initStr, initStr, initStr);
     }
     catch (std::runtime_error& err)
     {
-        CHECK(std::string("0") == err.what());
+        CHECK(std::string("2") == err.what());
     }
     checkReset();
 }

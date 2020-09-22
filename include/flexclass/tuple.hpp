@@ -95,7 +95,7 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     static void destroy(void* buf, std::size_t count) noexcept
     {
         if constexpr (sizeof...(Tail) > 0)
-            Base::template destroy<id-1>(buf, count);
+            Base::template destroy<id+1>(buf, count);
 
         if (count > id)
             static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos))->~TheType();
@@ -142,7 +142,7 @@ struct tuple
     ~tuple()
     {
         if constexpr (Size > 0)
-            TP::template destroy<P::NumElements-1>(&m_data, P::NumElements);
+            TP::template destroy<0>(&m_data, P::NumElements);
     }
 
     template<std::size_t i> auto& get() { return TP::template get<i>(&m_data); }
