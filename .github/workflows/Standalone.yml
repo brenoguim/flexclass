@@ -27,5 +27,10 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE
       
     - name: PushToStandaloneBranch
+      working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: git checkout standalone && cp ${{runner.workspace}}/build/flexclass/include/flexclass.hpp . && git add flexclass.hpp && git commit -m "Update standalone" && git push
+      run: git -C $GITHUB_WORKSPACE checkout standalone && \
+           cp ./flexclass/include/flexclass.hpp ${GITHUB_WORKSPACE}/flexclass.hpp && \
+           git -C $GITHUB_WORKSPACE add GITHUB_WORKSPACE/flexclass.hpp && \
+           git -C $GITHUB_WORKSPACE commit -m "Update standalone" && \
+           git -C $GITHUB_WORKSAPCE push
