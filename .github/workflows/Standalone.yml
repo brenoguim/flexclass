@@ -1,4 +1,4 @@
-name: Create release draft
+name: Update standalone branch
 
 on: [workflow_dispatch]
 
