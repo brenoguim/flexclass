@@ -2,29 +2,17 @@ name: Update standalone branch
 
 on: [workflow_dispatch]
 
-env:
-  BUILD_TYPE: Release
-
 jobs:
-  build:
+  standalone:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
-
-    - name: Configure CMake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=${PWD}/install/
-
-    - name: Build
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config $BUILD_TYPE --target install
-      
+    - uses: actions/checkout@v1
+    - name: install
+      run: sudo apt-get install -y tree
+    - name: configure
+      run: cmake -H. -Bbuild/ -DCMAKE_INSTALL_PREFIX=${PWD}/install/
+    - name: deploy
+      run: cmake --build build/ --target install && tree ${PWD}/install/
     - name: release
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
