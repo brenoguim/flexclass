@@ -7,10 +7,9 @@
 namespace fc
 {
 
-template<std::size_t Pos, std::size_t DesiredAlignment>
-constexpr std::size_t round()
+constexpr std::size_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment)
 {
-    return (Pos - 1u + DesiredAlignment) & -DesiredAlignment;
+    return (pos - 1u + desiredAlignment) & -desiredAlignment;
 }
 
 template<class... T> struct List;
@@ -38,7 +37,7 @@ template<std::size_t Pos, class T> struct Item
 template<std::size_t MaxAlign, std::size_t Pos, class Head, class... Tail>
 struct InsertPadding<MaxAlign, Pos, List<Head, Tail...>>
 {
-    static constexpr auto RoundedPos = round<Pos, alignof(Head)>();
+    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
     using SubType = InsertPadding<MaxAlign, RoundedPos + CSizeOf<Head>
                                           , List<Tail...>
                                  >;
@@ -55,7 +54,7 @@ struct InsertPadding<MaxAlign, Pos, List<Head, Tail...>>
 template<std::size_t MaxAlign, std::size_t Pos, class Head>
 struct InsertPadding<MaxAlign, Pos, List<Head>>
 {
-    static constexpr auto RoundedPos = round<Pos, alignof(Head)>() - MaxAlign;
+    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head)) - MaxAlign;
     using type = List<Item<RoundedPos, Head>>;
     static constexpr auto NumBytes = RoundedPos + CSizeOf<Head>;
     static constexpr auto Alignment = MaxAlign;
