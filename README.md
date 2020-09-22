@@ -1,4 +1,4 @@
-# Flexclass v0.1
+# Flexclass
 A library for structures with flexible layout.
 
 ## Problem statement
