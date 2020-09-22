@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FC_FLEXCLASS_CORE_HPP
+#define FC_FLEXCLASS_CORE_HPP
 
 #include <algorithm>
 #include <cassert>
@@ -6,7 +7,6 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
-#include "tuple.hpp"
 
 namespace fc
 {
@@ -301,3 +301,5 @@ struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
 };
 
 }
+
+#endif // FC_FLEXCLASS_CORE_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FC_FLEXCLASS_TUPLE_HPP
+#define FC_FLEXCLASS_TUPLE_HPP
 
 #include <cstdint>
 #include <algorithm>
@@ -159,3 +160,5 @@ template<int i, class...T>
 auto& get_element(const tuple<T...>& t) { return t.template get<i>(); }
 
 }
+
+#endif // FC_FLEXCLASS_TUPLE_HPP

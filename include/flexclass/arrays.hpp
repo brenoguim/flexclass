@@ -1,6 +1,5 @@
-#pragma once
-
-#include "flexclass.hpp"
+#ifndef FC_FLEXCLASS_ARRAYS_HPP
+#define FC_FLEXCLASS_ARRAYS_HPP
 
 namespace fc
 {
@@ -96,3 +95,5 @@ struct ArraySelector<T[]>
 };
 
 }
+
+#endif // FC_FLEXCLASS_ARRAYS_HPP
