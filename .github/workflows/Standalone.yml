@@ -1,0 +1,32 @@
+name: Update standalone branch
+
+on: [workflow_dispatch]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config $BUILD_TYPE
+      
+    - name: PushToStandaloneBranch
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: git checkout standalone && cp ./flexclass/include/flexclass.hpp .. && git add ../flexclass.hpp && git commit -m "Update standalone" && git push
