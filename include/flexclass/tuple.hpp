@@ -27,51 +27,51 @@ static constexpr std::size_t maxAlign = std::max({std::size_t(1), alignof(T)...}
 template<class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
 
-template<std::size_t Align, std::size_t Pos, class List> struct InsertPadding;
+template<std::size_t Pos, class List> struct InsertPadding;
 template<std::size_t Pos, class T> struct Item
 {
     static constexpr auto pos = Pos;
     using type = T;
 };
 
-template<std::size_t MaxAlign, std::size_t Pos, class Head, class... Tail>
-struct InsertPadding<MaxAlign, Pos, List<Head, Tail...>>
+template<std::size_t Pos, class Head, class... Tail>
+struct InsertPadding<Pos, List<Head, Tail...>>
 {
     static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
-    using SubType = InsertPadding<MaxAlign, RoundedPos + CSizeOf<Head>
-                                          , List<Tail...>
+    using SubType = InsertPadding<RoundedPos + CSizeOf<Head>
+                                 , List<Tail...>
                                  >;
 
-    using type = concat<List<Item<RoundedPos - MaxAlign, Head>>,
+    using type = concat<List<Item<RoundedPos, Head>>,
                         typename SubType::type
                         >;
     static constexpr auto NumBytes = SubType::NumBytes;
-    static constexpr auto Alignment = MaxAlign;
+    static constexpr auto Alignment = maxAlign<Head, Tail...>;
     static constexpr auto NumElements = sizeof...(Tail) + 1;
 
 };
 
-template<std::size_t MaxAlign, std::size_t Pos, class Head>
-struct InsertPadding<MaxAlign, Pos, List<Head>>
+template<std::size_t Pos, class Head>
+struct InsertPadding<Pos, List<Head>>
 {
-    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head)) - MaxAlign;
+    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
     using type = List<Item<RoundedPos, Head>>;
     static constexpr auto NumBytes = RoundedPos + CSizeOf<Head>;
-    static constexpr auto Alignment = MaxAlign;
+    static constexpr auto Alignment = alignof(Head);
     static constexpr std::size_t NumElements = 1;
 };
 
-template<std::size_t MaxAlign, std::size_t Pos>
-struct InsertPadding<MaxAlign, Pos, List<>>
+template<std::size_t Pos>
+struct InsertPadding<Pos, List<>>
 {
     using type = List<>;
     static constexpr auto NumBytes = 0;
-    static constexpr auto Alignment = MaxAlign;
+    static constexpr auto Alignment = 1;
     static constexpr std::size_t NumElements = 0;
 };
 
 template<class... T>
-using WithPadding = InsertPadding<maxAlign<T...>, maxAlign<T...>, List<T...>>;
+using WithPadding = InsertPadding<0, List<T...>>;
 
 template<class L> struct TupleBuilder;
 template<class Head, class... Tail>
