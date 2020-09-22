@@ -63,6 +63,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
-        asset_path: ${{ runner.workspace }}/build/flexclass/include
+        asset_path: ${{ runner.workspace }}/build/flexclass/include/flexclass.hpp
         asset_name: flexclass.hpp
         asset_content_type: text/plain
