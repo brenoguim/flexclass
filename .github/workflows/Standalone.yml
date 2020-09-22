@@ -30,4 +30,4 @@ jobs:
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         BRANCH: standalone
-        FOLDER: flexclass/include
+        FOLDER: build
