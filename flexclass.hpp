@@ -20,8 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
-#pragma once
+#ifndef FC_FLEXCLASS_FLEXCLASS_HPP
+#define FC_FLEXCLASS_FLEXCLASS_HPP
+#ifndef FC_FLEXCLASS_TUPLE_HPP
+#define FC_FLEXCLASS_TUPLE_HPP
 #include <cstdint>
 #include <algorithm>
 #include <memory>
@@ -152,7 +154,9 @@ auto& get_element(tuple<T...>& t) { return t.template get<i>(); }
 template<int i, class...T>
 auto& get_element(const tuple<T...>& t) { return t.template get<i>(); }
 }
-#pragma once
+#endif // FC_FLEXCLASS_TUPLE_HPP
+#ifndef FC_FLEXCLASS_CORE_HPP
+#define FC_FLEXCLASS_CORE_HPP
 #include <algorithm>
 #include <cassert>
 #include <limits>
@@ -396,8 +400,9 @@ struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
     using FlexibleBase<FlexibleClass<Args...>, Args...>::FlexibleBase;
 };
 }
-#pragma once
-#pragma once
+#endif // FC_FLEXCLASS_CORE_HPP
+#ifndef FC_FLEXCLASS_ARRAYS_HPP
+#define FC_FLEXCLASS_ARRAYS_HPP
 namespace fc
 {
 template<class T> struct Array
@@ -471,3 +476,5 @@ struct ArraySelector<T[]>
                            Array<T>, Range<T>>;
 };
 }
+#endif // FC_FLEXCLASS_ARRAYS_HPP
+#endif // FC_FLEXCLASS_FLEXCLASS_HPP
