@@ -84,7 +84,7 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     template<std::size_t id, class Arg1, class... Args>
     static void build(void* buf, std::size_t& count, Arg1&& arg1, Args&&... args)
     {
-        ::new (static_cast<char*>(buf) + Head::pos) TheType(std::forward<Arg1>(arg1));
+        ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
         count = id + 1;
 
         if constexpr (sizeof...(Tail) > 0)
@@ -98,17 +98,19 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
             Base::template destroy<id+1>(buf, count);
 
         if (count > id)
-            static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos))->~TheType();
+            obj(buf)->~TheType();
     }
 
     template<std::size_t id>
     static auto& get(void* buf) noexcept
     {
         if constexpr (id == 0)
-            return *static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos));
+            return *obj(buf);
         else if constexpr (sizeof...(Tail) > 0)
             return Base::template get<id-1>(buf);
     }
+
+    static auto obj(void* buf) { return static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos)); }
 };
 
 template<> struct TupleBuilder<List<>> {};
