@@ -26,11 +26,9 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
       
-    - name: PushToStandaloneBranch
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: git -C $GITHUB_WORKSPACE checkout standalone && \
-           cp ./flexclass/include/flexclass.hpp ${GITHUB_WORKSPACE}/flexclass.hpp && \
-           git -C $GITHUB_WORKSPACE add GITHUB_WORKSPACE/flexclass.hpp && \
-           git -C $GITHUB_WORKSPACE commit -m "Update standalone" && \
-           git -C $GITHUB_WORKSAPCE push
+    - name: release
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: standalone
+        FOLDER: install/include
