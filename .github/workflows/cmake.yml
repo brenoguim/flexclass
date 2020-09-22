@@ -65,4 +65,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} 
         asset_path: ${{ runner.workspace }}/build/flexclass/include
         asset_name: flexclass.hpp
-        asset_content_type: application/txt
+        asset_content_type: application/hpp
