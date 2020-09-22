@@ -1,262 +1,154 @@
 #pragma once
 
-#include <utility>
-#include <type_traits>
+#include <cstdint>
+#include <algorithm>
+#include <memory>
 
 namespace fc
 {
 
-template<class T> struct printer;
-
-// type list
-template<class... T> struct list { using type = void; };
-
-// push_back_t creates a list with another element in the end
-template<class A, class B> struct push_back;
-template<class... A, class B> struct push_back<list<A...>, B>
+template<std::size_t Pos, std::size_t DesiredAlignment>
+constexpr std::size_t round()
 {
-    using type = list<A..., B>;
+    return (Pos - 1u + DesiredAlignment) & -DesiredAlignment;
+}
+
+template<class... T> struct List;
+
+template<class A, class B> struct concat_i;
+template<class... A, class... B> struct concat_i<List<A...>, List<B...>>
+{
+    using type = List<A..., B...>;
 };
-template<class A, class B> using push_back_t = typename push_back<A, B>::type;
+template<class A, class B> using concat = typename concat_i<A, B>::type;
 
-template<class A, class B> struct push_front;
-template<class... A, class B> struct push_front<list<A...>, B>
+template<class... T>
+static constexpr std::size_t maxAlign = std::max({std::size_t(1), alignof(T)...});
+
+template<class T>
+static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
+
+template<std::size_t Align, std::size_t Pos, class List> struct InsertPadding;
+template<std::size_t Pos, class T> struct Item
 {
-    using type = list<B, A...>;
-};
-template<class A, class B> using push_front_t = typename push_front<A, B>::type;
-
-
-// concat
-template<class A, class B> struct concat;
-template<class... T1, class... T2> struct concat<list<T1...>, list<T2...>>
-{
-    using type = list<T1..., T2...>;
-};
-
-// reverse_t creates a list in the reverse order of the input
-template<class L> struct reverse;
-template<> struct reverse<list<>> { using type = list<>; };
-
-template<class Head, class... Tail>
-struct reverse<list<Head, Tail...>>
-{
-    using type = push_back_t<  typename reverse<list<Tail...>>::type   , Head>;
-};
-
-template<class T> using reverse_t = typename reverse<T>::type;
-
-// add_ids: Transforms a list<T...> into list<list<id<0>,T1>, list<id<1>, T2>...>
-template<int Id, class T> struct item
-{
-    static constexpr auto value = Id;
+    static constexpr auto pos = Pos;
     using type = T;
 };
 
-template<int i, class List> struct reverse_add_ids;
-
-template<int i, class Head, class... Tail>
-struct reverse_add_ids<i, list<Head, Tail...>>
+template<std::size_t MaxAlign, std::size_t Pos, class Head, class... Tail>
+struct InsertPadding<MaxAlign, Pos, List<Head, Tail...>>
 {
-    using type = push_back_t<typename reverse_add_ids<i+1, list<Tail...>>::type, item<i, Head>>;
+    static constexpr auto RoundedPos = round<Pos, alignof(Head)>();
+    using SubType = InsertPadding<MaxAlign, RoundedPos + CSizeOf<Head>
+                                          , List<Tail...>
+                                 >;
+
+    using type = concat<List<Item<RoundedPos - MaxAlign, Head>>,
+                        typename SubType::type
+                        >;
+    static constexpr auto NumBytes = SubType::NumBytes;
+    static constexpr auto Alignment = MaxAlign;
+    static constexpr auto NumElements = sizeof...(Tail) + 1;
+
 };
 
-template<int i, class Head>
-struct reverse_add_ids<i, list<Head>>
+template<std::size_t MaxAlign, std::size_t Pos, class Head>
+struct InsertPadding<MaxAlign, Pos, List<Head>>
 {
-    using type = list<item<i, Head>>;
+    static constexpr auto RoundedPos = round<Pos, alignof(Head)>() - MaxAlign;
+    using type = List<Item<RoundedPos, Head>>;
+    static constexpr auto NumBytes = RoundedPos + CSizeOf<Head>;
+    static constexpr auto Alignment = MaxAlign;
+    static constexpr std::size_t NumElements = 1;
 };
 
-template<int i>
-struct reverse_add_ids<i, list<>>
+template<std::size_t MaxAlign, std::size_t Pos>
+struct InsertPadding<MaxAlign, Pos, List<>>
 {
-    using type = list<>;
+    using type = List<>;
+    static constexpr auto NumBytes = 0;
+    static constexpr auto Alignment = MaxAlign;
+    static constexpr std::size_t NumElements = 0;
 };
 
 template<class... T>
-using reverse_add_ids_t = typename reverse_add_ids<0, T...>::type;
+using WithPadding = InsertPadding<maxAlign<T...>, maxAlign<T...>, List<T...>>;
 
-// Bring empty to end t
-
-template<class T>
-struct can_be_base {
-    static constexpr auto value = std::is_empty<T>::value &&
-                                  std::is_trivially_destructible<T>::value;
-};
-
-template<class T> struct bring_empty_to_end;
-
-template<> struct bring_empty_to_end<list<>>
-{
-    using empties = list<>;
-    using nonempties = list<>;
-};
-
+template<class L> struct TupleBuilder;
 template<class Head, class... Tail>
-struct bring_empty_to_end<list<Head, Tail...>>
+struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
 {
-    using empties = std::conditional_t<
-        can_be_base<typename Head::type>::value,
-            push_back_t<typename bring_empty_to_end<list<Tail...>>::empties, Head>,
-            typename bring_empty_to_end<list<Tail...>>::empties
-    >;
-    using nonempties = std::conditional_t<
-        !can_be_base<typename Head::type>::value,
-            push_front_t<typename bring_empty_to_end<list<Tail...>>::nonempties, Head>,
-            typename bring_empty_to_end<list<Tail...>>::nonempties
-    >;
-};
+    using Base = TupleBuilder<List<Tail...>>;
+    using TheType = typename Head::type;
 
-template<class Head>
-struct bring_empty_to_end<list<Head>>
-{
-    using empties = std::conditional_t<
-        can_be_base<typename Head::type>::value,
-            list<Head>,
-            list<>
-    >;
-    using nonempties = std::conditional_t<
-        !can_be_base<typename Head::type>::value,
-            list<Head>,
-            list<>
-    >;
-};
-
-template<class T> using bring_empty_to_end_t =
-    typename concat<typename bring_empty_to_end<T>::nonempties,
-                    typename bring_empty_to_end<T>::empties
-             >::type;
-
-// Utility that returns a parameter with idx "i" from a parameter list
-template<int i, int N, class Arg1, class... Args>
-decltype(auto) selectParamI(Arg1&& arg1, Args&&... args)
-{
-    if constexpr (i == N) return std::forward<Arg1>(arg1);
-    else return selectParamI<i+1, N>(std::forward<Args>(args)...);
-}
-
-template<int i, class... Args>
-decltype(auto) selectParam(Args&&... args)
-{
-    return selectParamI<0, i>(std::forward<Args>(args)...);
-}
-
-// Tuple implementation
-
-
-template<class T, bool> struct tuple_impl;
-
-template<class T> struct tuple_choice_i
-{
-    using type = tuple_impl<T, false>;
-};
-
-template<class Head, class... T>
-struct tuple_choice_i<list<Head, T...>>
-{
-    using type = tuple_impl<list<Head, T...>, can_be_base<typename Head::type>::value>;
-};
-
-template<class T>
-using tuple_choice = typename tuple_choice_i<T>::type;
-
-template<class T, bool> struct tuple_impl;
-
-template<class Head, class... Tail>
-struct tuple_impl<list<Head, Tail...>, false> : public tuple_choice<list<Tail...>>
-{
-    using Base = tuple_choice<list<Tail...>>;
-
-    template<class... Args>
-    tuple_impl(Args&&... args)
-        : Base(std::forward<Args>(args)...)
-        , m_data(selectParam<Head::value>(std::forward<Args>(args)...))
-    {}
-
-    template<int i> auto& get() const
+    template<std::size_t id, class Arg1, class... Args>
+    static void build(void* buf, std::size_t& count, Arg1&& arg1, Args&&... args)
     {
-        if constexpr (i == Head::value)
-            return m_data;
-        else
-            return Base::template get<i>();
-    };
+        ::new (static_cast<char*>(buf) + Head::pos) TheType(std::forward<Arg1>(arg1));
+        count = id + 1;
 
-    template<int i> auto& get()
+        if constexpr (sizeof...(Tail) > 0)
+            Base::template build<id+1>(buf, count, std::forward<Args>(args)...);
+    }
+
+    template<std::size_t id>
+    static void destroy(void* buf, std::size_t count) noexcept
     {
-        if constexpr (i == Head::value)
-            return m_data;
-        else
-            return Base::template get<i>();
-    };
+        if constexpr (sizeof...(Tail) > 0)
+            Base::template destroy<id-1>(buf, count);
 
-    typename Head::type m_data;
-};
+        if (count > id)
+            static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos))->~TheType();
+    }
 
-template<int idx, class T>
-struct Derivable : public T
-{
-    T& get() { return *this; }
-    const T& get() const { return *this; }
-};
-
-template<class Head, class... Tail>
-struct tuple_impl<list<Head, Tail...>, true>
-    : public tuple_choice<list<Tail...>>
-    , public Derivable<Head::value, typename Head::type>
-{
-    using Base = tuple_choice<list<Tail...>>;
-    using Data = Derivable<Head::value, typename Head::type>;
-
-    template<class... Args>
-    tuple_impl(Args&&... args)
-        : Base(std::forward<Args>(args)...)
-        , Data{selectParam<Head::value>(std::forward<Args>(args)...)}
-    {}
-
-    template<int i> auto& get() const
+    template<std::size_t id>
+    static auto& get(void* buf) noexcept
     {
-        if constexpr (i == Head::value)
-            return Data::get();
-        else
-            return Base::template get<i>();
-    };
-
-    template<int i> auto& get()
-    {
-        if constexpr (i == Head::value)
-            return Data::get();
-        else
-            return Base::template get<i>();
-    };
+        if constexpr (id == 0)
+            return *static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos));
+        else if constexpr (sizeof...(Tail) > 0)
+            return Base::template get<id-1>(buf);
+    }
 };
 
-template<> struct tuple_impl<list<>, false>
-{
-    template<class... Args> tuple_impl(Args&&... args) {}
-};
+template<> struct TupleBuilder<List<>> {};
 
-template<class... Members>
-struct tuple : public tuple_choice<bring_empty_to_end_t<reverse_add_ids_t<list<Members...>>>>
+template<class... T>
+struct tuple
 {
-    using Base = tuple_choice<bring_empty_to_end_t<reverse_add_ids_t<list<Members...>>>>;
-    static constexpr auto Size = sizeof...(Members);
+    using P = WithPadding<T...>;
+    using TP = TupleBuilder<typename P::type>;
+    static constexpr auto Size = sizeof...(T);
 
     template<class... Args>
     tuple(Args&&... args)
-        : Base(std::forward<Args>(args)...)
-    {}
-
-    template<int i> auto& get() const
     {
-        static_assert(i < Size, "Index exceeds tuple size");
-        return Base::template get<i>();
-    };
+        if constexpr (Size > 0)
+        {
+            std::size_t count = 0;
+            try
+            {
+                TP::template build<0>(&m_data, count,
+                    std::forward<Args>(args)...);
+            }
+            catch (...)
+            {
+                TP::template destroy<0>(&m_data, count);
+                throw;
+            }
+        }
+    }
 
-    template<int i> auto& get()
+    ~tuple()
     {
-        static_assert(i < Size, "Index exceeds tuple size");
-        return Base::template get<i>();
-    };
+        if constexpr (Size > 0)
+            TP::template destroy<P::NumElements-1>(&m_data, P::NumElements);
+    }
+
+    template<std::size_t i> auto& get() { return TP::template get<i>(&m_data); }
+    template<std::size_t i> const auto& get() const { return const_cast<tuple*>(this)->get<i>(); }
+
+    std::aligned_storage_t<P::NumBytes, P::Alignment> m_data;
 };
 
 template<int i, class...T>
