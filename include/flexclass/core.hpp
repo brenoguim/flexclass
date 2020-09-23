@@ -94,6 +94,8 @@ struct ArrayBuilder {
     {
     }
 
+    ArrayBuilder() = default;
+
     ~ArrayBuilder()
     {
         if (m_ptr)
@@ -119,14 +121,16 @@ struct ArrayBuilder {
         m_ptr = ptr;
     }
 
-    std::size_t numRequiredBytes(std::size_t offset)
+    template <class ArrayParameter>
+    std::size_t numRequiredBytes(std::size_t offset, ArrayParameter&& sz) const
     {
+        auto numBytes = sz * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
         auto originalSpace = space;
         void* ptr = static_cast<char*>(nullptr) + offset;
-        auto r = std::align(alignof(T), numBytes(), ptr, space);
+        auto r = std::align(alignof(T), numBytes, ptr, space);
         assert(r);
-        return (originalSpace - space) + numBytes();
+        return (originalSpace - space) + numBytes;
     }
 
     auto numBytes() const { return m_size * sizeof(T); }
@@ -182,15 +186,36 @@ struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type
 };
 
 namespace detail {
+    template <std::size_t Idx, class Arg1, class... Args>
+    decltype(auto) pickFromPack(Arg1&& arg1, Args&&... args)
+    {
+        if constexpr (Idx == 0)
+            return std::forward<Arg1>(arg1);
+        else
+            return pickFromPack<Idx - 1>(std::forward<Args>(args)...);
+    }
+
+    template <int Idx, class T, class Fn>
+    void callWithIdx(const T& t, Fn&& f)
+    {
+        f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+    }
+
+    template <int Idx, class T, class Fn>
+    void callWithIdx(T& t, Fn&& f)
+    {
+        f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+    }
+
     template <typename T, typename F, int... Is>
-    void for_each(T&& t, F f, std::integer_sequence<int, Is...>)
+    void for_each(T&& t, F&& f, std::integer_sequence<int, Is...>)
     {
         if constexpr (std::remove_reference_t<T>::Size > 0)
-            auto l = { (f(get_element<Is>(t)), 0)... };
+            auto l = { (callWithIdx<Is>(t, f), 0)... };
     }
 
     template <int I, int N, typename T1, typename T2, typename F>
-    void for_each_zipped(T1&& t1, T2&& t2, F f)
+    void for_each_zipped(T1&& t1, T2&& t2, F&& f)
     {
         if constexpr (I != N) {
             f(get_element<I>(t1), get_element<I>(t2));
@@ -200,7 +225,7 @@ namespace detail {
 }
 
 template <typename... Ts, typename F>
-void for_each_in_tuple(fc::tuple<Ts...>& t, F f)
+void for_each_in_tuple(fc::tuple<Ts...>& t, F&& f)
 {
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
@@ -212,13 +237,13 @@ constexpr auto reverseIntegerSequence(std::integer_sequence<int, Is...> const&)
 }
 
 template <typename... Ts, typename F>
-void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F f)
+void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
 {
     detail::for_each(t, f, reverseIntegerSequence(std::make_integer_sequence<int, sizeof...(Ts)>()));
 }
 
 template <typename... Ts, typename F>
-void for_each_in_tuple(const fc::tuple<Ts...>& t, F f)
+void for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
 {
     detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
 }
@@ -305,13 +330,11 @@ public:
 
         std::size_t numBytesForArrays = 0;
         {
-            PreImpl pi(args...);
-
             for_each_in_tuple(
-                pi,
-                [&numBytesForArrays]<class U>(U & u) mutable {
+                PreImpl(),
+                [&]<class U, class Idx>(const U& u, Idx idx) mutable {
                     if constexpr (is_array_placeholder<U>::value)
-                        numBytesForArrays += u.numRequiredBytes(sizeof(Derived) + numBytesForArrays);
+                        numBytesForArrays += u.numRequiredBytes(sizeof(Derived) + numBytesForArrays, detail::pickFromPack<Idx::value>(args...));
                 });
         }
 
@@ -325,7 +348,7 @@ public:
         void* arrayBuffer = ret + 1;
         for_each_in_tuple(
             pi,
-            [&]<class U>(U & u) mutable {
+            [&]<class U>(U & u, auto idx) mutable {
                 if constexpr (is_array_placeholder<U>::value)
                     u.consume(arrayBuffer, numBytesForArrays);
             });
@@ -349,7 +372,7 @@ public:
             return;
         reverse_for_each_in_tuple(
             *p,
-            [p]<class U>(U & u) {
+            [p]<class U>(U & u, auto idx) {
                 if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
                     if constexpr (!std::is_trivially_destructible<typename U::type>::value) {
                         reverse_destroy(u.begin(p), u.end(p));
