@@ -307,7 +307,7 @@ template <class T>
 struct GetAlignmentRequirement<
     T, typename void_<typename is_fc_array<T>::enable>::type>
 {
-    static constexpr std::size_t value = T::array_alignment;
+    static constexpr std::size_t value = alignof(typename T::type);
 };
 
 template <class... Types>

@@ -17,7 +17,6 @@ struct Array
 
     using type = T;
     using fc_handle = handle::array;
-    static constexpr auto array_alignment = alignof(T);
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -45,7 +44,6 @@ struct Range
 
     using type = T;
     using fc_handle = handle::range;
-    static constexpr auto array_alignment = alignof(T);
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -77,7 +75,6 @@ struct AdjacentArray
 
     using type = T;
     using fc_handle = handle::array;
-    static constexpr auto array_alignment = alignof(T);
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -100,7 +97,6 @@ struct AdjacentRange
 
     using type = T;
     using fc_handle = handle::range;
-    static constexpr auto array_alignment = alignof(T);
 
     template <class Derived>
     auto begin(const Derived* ptr) const
