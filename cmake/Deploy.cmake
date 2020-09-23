@@ -2,7 +2,7 @@ set(THIS_FILE ${CMAKE_CURRENT_LIST_FILE})
 
 function(copyright _license _output)
     set(output "${${_output}}")
-    file(STRINGS ${_license} lines NEWLINE_CONSUME)
+    file(READ ${_license} lines)
     string(REGEX REPLACE "\n$" "" lines "${lines}")
     string(REGEX REPLACE "\n" "\n// " output "// ${lines}")
     set(${_output} "${output}\n\n" PARENT_SCOPE)
