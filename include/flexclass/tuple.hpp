@@ -88,6 +88,16 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>> {
     }
 
     template <std::size_t id>
+    static void build(void* buf, std::size_t& count)
+    {
+        ::new (obj(buf)) TheType;
+        count = id + 1;
+
+        if constexpr (sizeof...(Tail) > 0)
+            Base::template build<id + 1>(buf, count);
+    }
+
+    template <std::size_t id>
     static void destroy(void* buf, std::size_t count) noexcept
     {
         if constexpr (sizeof...(Tail) > 0)
@@ -127,6 +137,19 @@ struct tuple {
             try {
                 TP::template build<0>(&m_data, count,
                     std::forward<Args>(args)...);
+            } catch (...) {
+                TP::template destroy<0>(&m_data, count);
+                throw;
+            }
+        }
+    }
+
+    tuple()
+    {
+        if constexpr (Size > 0) {
+            std::size_t count = 0;
+            try {
+                TP::template build<0>(&m_data, count);
             } catch (...) {
                 TP::template destroy<0>(&m_data, count);
                 throw;
