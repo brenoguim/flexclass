@@ -191,46 +191,6 @@ TODO: Add a description for this example
 [See the full example here](../master/tests/variant_array_example.test.cpp)
 
 
-## How `Flexclass` works
-
-This is a simplified implementation/pseudo-algorithm:
-```
-FlexibleBase::make(Args... args)
-{
-    // What we call "Base" is a tuple with all types the user declared, but with T[] converted to Array handles.
-    using Base = std::tuple</* Args... with T[] -> Array<T[]> */>;
-    
-    // We cannot initialize this Base with the user arguments, because each array gets the "size" as a parameter
-    // and Array does not have such constructor.
-    
-    // To workaround that, we create an intermediate representation, with each Array<T> converted to ArrayBuilder<T>
-    //    other T are transformed into an "Ignore" class which is just created from any parameter, and ignores it
-    using Intermediate = std::tuple< /* Use Base but convert Array types to ArrayBuilder */>;
-
-    // Now we can instantiate the intermediate type:
-    Intermediate ir(args...);
-    
-    // Each ArrayBuilder knows the requested size of the array and it's type, 
-    //    so we iterate on these builders and ask for the number of bytes they need
-    
-    //foreach (ar : ArrayBuilders) numBytesForArrays += ar.neededBytes();
-    
-    // Now we can create the storage
-    void* storage = ::operator new(sizeof(Base) + numBytesForArrays);
-    
-    // Each ArrayBuilder is now provided with the storage for it to create the array it wants to manage
-    // foreach (ar : ArrayBuilders) ar.neededBytes(storage);
-    
-    // Finally we create the "Base" tuple from the user arguments. Array types will ignore the "int" type being passed
-    auto r = new (storage) Base(std::move(ir));
-
-    // Before returning, we iterate on the intermediate representation and the Base assigning array locations
-    foreach ([b, i] : [*r, ir]) { b.setLocation(i.begin(), i.end()); }
-
-    return r;
-}
-```
-
 ## TODO/Known issues
 - Flexclass constructors
     - Allocator support
@@ -239,5 +199,8 @@ FlexibleBase::make(Args... args)
 - Add performance tests
 - Add range-for support for AdjacentRanges.
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
-- Document customization infrastructure
+- Documentation - create a separate readme for the details
+    - Customization infrastructure
+    - Overview of how the library works
+    - Exception guarantees
 - Support arrays before the base
