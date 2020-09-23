@@ -196,8 +196,13 @@ TODO: Add a description for this example
     - Allocator support
     - Support passing arguments to the array constructor via input iterator or lambda
     - Provide a way to group "array sizes" with their type. The constructor is disconnected
+- Provide ways to convert from a Adjacent member to base
+    - `convert<int element>(T*) -> fc::FlexibleClass<int, fc::AdjacentArray<T>>*`
+- Implement `Optional` or `Maybe` as a short-cut for an array with 0 or 1 element.
 - Add performance tests
 - Add range-for support for AdjacentRanges.
+- Use static asserts to provide better diagnostics on common mistakes:
+    - Passing the wrong number of parameters
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Documentation - create a separate readme for the details
     - Customization infrastructure
