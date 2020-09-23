@@ -301,8 +301,6 @@ public:
     template <class... Args>
     static auto make(Args&&... args)
     {
-        static_assert(sizeof(Derived) == sizeof(FlexibleBase));
-
         using PreImpl = fc::tuple<typename PreImplConverter<T>::type...>;
 
         std::size_t numBytesForArrays = 0;
@@ -313,18 +311,18 @@ public:
                 pi,
                 [&numBytesForArrays]<class U>(U & u) mutable {
                     if constexpr (is_array_placeholder<U>::value)
-                        numBytesForArrays += u.numRequiredBytes(sizeof(FlexibleBase) + numBytesForArrays);
+                        numBytesForArrays += u.numRequiredBytes(sizeof(Derived) + numBytesForArrays);
                 });
         }
 
-        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
+        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(::operator new(sizeof(Derived) + numBytesForArrays));
 
         PreImpl pi(args...);
 
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
         implBuffer.get_deleter().typeCreated = true;
 
-        void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
+        void* arrayBuffer = ret + 1;
         for_each_in_tuple(
             pi,
             [&]<class U>(U & u) mutable {

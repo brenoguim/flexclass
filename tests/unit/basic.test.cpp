@@ -233,6 +233,29 @@ TEST_CASE( "AdjacentRange<T> array with non-trivial type", "[basic]" )
     CHECK(count == 1000);
 }
 
+TEST_CASE( "Support memebers outside Flexclass declaration", "[basic]" )
+{
+    struct LargeString { std::string m = "00000000000000000000000000000000000000000000"; };
+    struct WithMembers : public fc::FlexibleBase<WithMembers, LargeString[]>
+    {
+        using FLB::FLB;
+
+        long otherValue1 = 1;
+        long otherValue2 = 2;
+        long otherValue3 = 3;
+        long otherValue4 = 4;
+        long otherValue5 = 5;
+    };
+
+    auto m = WithMembers::make_unique(1000);
+
+    CHECK(m->otherValue1 == 1);
+    CHECK(m->otherValue2 == 2);
+    CHECK(m->otherValue3 == 3);
+    CHECK(m->otherValue4 == 4);
+    CHECK(m->otherValue5 == 5);
+}
+
 TEST_CASE( "char followed by AdjacentArray<long> to check that long* is aligned properly", "[alignment]" )
 {
     auto m = fc::FlexibleClass<char, fc::AdjacentArray<long>>::make_unique('\0', 1000);
