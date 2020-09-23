@@ -46,12 +46,14 @@ struct Message : public fc::FlexibleBase<Message, std::string, char[]>
 Message* msgFactory(std::string header, int dataSize)
 {
     auto* m = Message::make(std::move(header), dataSize);
-    std::strcpy(m->get<Message::Data>(), "Default message");
+    std::strcpy(m->begin<Message::Data>(), "Default message");
     return m;
 }
 ```
 
-In this new version, members are declared as arguments of `fc::FlexibleBase`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->get<Data>()`
+[See this example on Compiler Explorer](https://godbolt.org/z/h3qdGx)
+
+In this new version, members are declared as arguments of `fc::FlexibleBase`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->begin<Data>()`
 
 To build the layout `Flexclass` inspects the argument list, finds `char[]` and understands that a `char` array must be attached to the allocation.
 
