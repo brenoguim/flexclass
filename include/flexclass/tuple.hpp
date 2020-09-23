@@ -5,9 +5,11 @@
 #include <cstdint>
 #include <memory>
 
-namespace fc {
+namespace fc
+{
 
-constexpr std::size_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment)
+constexpr std::size_t findNextAlignedPosition(std::size_t pos,
+                                              std::size_t desiredAlignment)
 {
     return (pos - 1u + desiredAlignment) & -desiredAlignment;
 }
@@ -18,14 +20,16 @@ struct List;
 template <class A, class B>
 struct concat_i;
 template <class... A, class... B>
-struct concat_i<List<A...>, List<B...>> {
+struct concat_i<List<A...>, List<B...>>
+{
     using type = List<A..., B...>;
 };
 template <class A, class B>
 using concat = typename concat_i<A, B>::type;
 
 template <class... T>
-static constexpr std::size_t maxAlign = std::max({ std::size_t(1), alignof(T)... });
+static constexpr std::size_t maxAlign = std::max({std::size_t(1),
+                                                  alignof(T)...});
 
 template <class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
@@ -33,26 +37,30 @@ static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
 template <std::size_t Pos, class List>
 struct InsertPadding;
 template <std::size_t Pos, class T>
-struct Item {
+struct Item
+{
     static constexpr auto pos = Pos;
     using type = T;
 };
 
 template <std::size_t Pos, class Head, class... Tail>
-struct InsertPadding<Pos, List<Head, Tail...>> {
-    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
+struct InsertPadding<Pos, List<Head, Tail...>>
+{
+    static constexpr auto RoundedPos =
+        findNextAlignedPosition(Pos, alignof(Head));
     using SubType = InsertPadding<RoundedPos + CSizeOf<Head>, List<Tail...>>;
 
-    using type = concat<List<Item<RoundedPos, Head>>,
-        typename SubType::type>;
+    using type = concat<List<Item<RoundedPos, Head>>, typename SubType::type>;
     static constexpr auto NumBytes = SubType::NumBytes;
     static constexpr auto Alignment = maxAlign<Head, Tail...>;
     static constexpr auto NumElements = sizeof...(Tail) + 1;
 };
 
 template <std::size_t Pos, class Head>
-struct InsertPadding<Pos, List<Head>> {
-    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
+struct InsertPadding<Pos, List<Head>>
+{
+    static constexpr auto RoundedPos =
+        findNextAlignedPosition(Pos, alignof(Head));
     using type = List<Item<RoundedPos, Head>>;
     static constexpr auto NumBytes = RoundedPos + CSizeOf<Head>;
     static constexpr auto Alignment = alignof(Head);
@@ -60,7 +68,8 @@ struct InsertPadding<Pos, List<Head>> {
 };
 
 template <std::size_t Pos>
-struct InsertPadding<Pos, List<>> {
+struct InsertPadding<Pos, List<>>
+{
     using type = List<>;
     static constexpr auto NumBytes = 0;
     static constexpr auto Alignment = 1;
@@ -73,18 +82,21 @@ using WithPadding = InsertPadding<0, List<T...>>;
 template <class L>
 struct TupleBuilder;
 template <class Head, class... Tail>
-struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>> {
+struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
+{
     using Base = TupleBuilder<List<Tail...>>;
     using TheType = typename Head::type;
 
     template <std::size_t id, class Arg1, class... Args>
-    static void build(void* buf, std::size_t& count, Arg1&& arg1, Args&&... args)
+    static void build(void* buf, std::size_t& count, Arg1&& arg1,
+                      Args&&... args)
     {
         ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
         count = id + 1;
 
         if constexpr (sizeof...(Tail) > 0)
-            Base::template build<id + 1>(buf, count, std::forward<Args>(args)...);
+            Base::template build<id + 1>(buf, count,
+                                         std::forward<Args>(args)...);
     }
 
     template <std::size_t id>
@@ -116,15 +128,21 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>> {
             return Base::template get<id - 1>(buf);
     }
 
-    static auto obj(void* buf) { return static_cast<TheType*>(static_cast<void*>(static_cast<char*>(buf) + Head::pos)); }
+    static auto obj(void* buf)
+    {
+        return static_cast<TheType*>(
+            static_cast<void*>(static_cast<char*>(buf) + Head::pos));
+    }
 };
 
 template <>
-struct TupleBuilder<List<>> {
+struct TupleBuilder<List<>>
+{
 };
 
 template <class... T>
-struct tuple {
+struct tuple
+{
     using P = WithPadding<T...>;
     using TP = TupleBuilder<typename P::type>;
     static constexpr auto Size = sizeof...(T);
@@ -132,12 +150,16 @@ struct tuple {
     template <class... Args>
     tuple(Args&&... args)
     {
-        if constexpr (Size > 0) {
+        if constexpr (Size > 0)
+        {
             std::size_t count = 0;
-            try {
+            try
+            {
                 TP::template build<0>(&m_data, count,
-                    std::forward<Args>(args)...);
-            } catch (...) {
+                                      std::forward<Args>(args)...);
+            }
+            catch (...)
+            {
                 TP::template destroy<0>(&m_data, count);
                 throw;
             }
@@ -146,11 +168,15 @@ struct tuple {
 
     tuple()
     {
-        if constexpr (Size > 0) {
+        if constexpr (Size > 0)
+        {
             std::size_t count = 0;
-            try {
+            try
+            {
                 TP::template build<0>(&m_data, count);
-            } catch (...) {
+            }
+            catch (...)
+            {
                 TP::template destroy<0>(&m_data, count);
                 throw;
             }
@@ -164,19 +190,31 @@ struct tuple {
     }
 
     template <std::size_t i>
-    auto& get() { return TP::template get<i>(&m_data); }
+    auto& get()
+    {
+        return TP::template get<i>(&m_data);
+    }
     template <std::size_t i>
-    const auto& get() const { return const_cast<tuple*>(this)->get<i>(); }
+    const auto& get() const
+    {
+        return const_cast<tuple*>(this)->get<i>();
+    }
 
     std::aligned_storage_t<P::NumBytes, P::Alignment> m_data;
 };
 
 template <int i, class... T>
-auto& get_element(tuple<T...>& t) { return t.template get<i>(); }
+auto& get_element(tuple<T...>& t)
+{
+    return t.template get<i>();
+}
 
 template <int i, class... T>
-auto& get_element(const tuple<T...>& t) { return t.template get<i>(); }
-
+auto& get_element(const tuple<T...>& t)
+{
+    return t.template get<i>();
 }
+
+} // namespace fc
 
 #endif // FC_FLEXCLASS_TUPLE_HPP

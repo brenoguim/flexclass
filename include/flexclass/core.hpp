@@ -10,20 +10,26 @@
 #include <tuple>
 #include <type_traits>
 
-namespace fc {
+namespace fc
+{
 
-namespace handle {
-    struct range {
-    };
-    struct array {
-    };
-}
+namespace handle
+{
+struct range
+{
+};
+struct array
+{
+};
+} // namespace handle
 
 template <class T>
 void reverse_destroy(T* b, T* e)
 {
-    if (b != e) {
-        while (1) {
+    if (b != e)
+    {
+        while (1)
+        {
             e--;
             e->~T();
             if (e == b)
@@ -33,25 +39,22 @@ void reverse_destroy(T* b, T* e)
 }
 
 template <class T>
-struct ArrayDeleter {
-    ArrayDeleter(T* begin)
-        : m_begin(begin)
-        , m_end(begin)
-    {
-    }
+struct ArrayDeleter
+{
+    ArrayDeleter(T* begin) : m_begin(begin), m_end(begin) {}
 
-    ~ArrayDeleter()
-    {
-        reverse_destroy(m_begin, m_end);
-    }
+    ~ArrayDeleter() { reverse_destroy(m_begin, m_end); }
 
     void setEnd(T* end) { m_end = end; }
     void release() { m_begin = m_end = nullptr; }
 
-    T *m_begin { nullptr }, *m_end { nullptr };
+    T *m_begin{nullptr}, *m_end{nullptr};
 };
 
-inline void* incr(void* in, std::size_t len) { return static_cast<char*>(in) + len; }
+inline void* incr(void* in, std::size_t len)
+{
+    return static_cast<char*>(in) + len;
+}
 
 template <class T, class U>
 inline auto align(U* u)
@@ -65,34 +68,51 @@ inline auto align(U* u)
 }
 
 template <class T>
-struct aligner_impl {
+struct aligner_impl
+{
     aligner_impl& advance(std::size_t len)
     {
         ptr += len;
         return *this;
     };
     template <class U>
-    auto cast() { return aligner_impl<U> { align<U>(ptr) }; }
+    auto cast()
+    {
+        return aligner_impl<U>{align<U>(ptr)};
+    }
     template <class U>
-    auto get() { return cast<U>().ptr; }
+    auto get()
+    {
+        return cast<U>().ptr;
+    }
     T* ptr;
 };
 
 template <class T>
-auto aligner(T* t) { return aligner_impl<T> { t }; }
+auto aligner(T* t)
+{
+    return aligner_impl<T>{t};
+}
 template <class T>
-auto aligner(const T* t) { return aligner_impl<T> { const_cast<T*>(t) }; }
+auto aligner(const T* t)
+{
+    return aligner_impl<T>{const_cast<T*>(t)};
+}
 template <class T>
-auto aligner(T* t, std::size_t len) { return aligner_impl<T> { t }.advance(len); }
+auto aligner(T* t, std::size_t len)
+{
+    return aligner_impl<T>{t}.advance(len);
+}
 template <class T>
-auto aligner(const T* t, std::size_t len) { return aligner_impl<T> { const_cast<T*>(t) }.advance(len); }
+auto aligner(const T* t, std::size_t len)
+{
+    return aligner_impl<T>{const_cast<T*>(t)}.advance(len);
+}
 
 template <class T>
-struct ArrayBuilder {
-    ArrayBuilder(std::size_t size)
-        : m_size(size)
-    {
-    }
+struct ArrayBuilder
+{
+    ArrayBuilder(std::size_t size) : m_size(size) {}
 
     ArrayBuilder() = default;
 
@@ -113,7 +133,8 @@ struct ArrayBuilder {
         auto e = b + m_size;
 
         ArrayDeleter<T> deleter(b);
-        while (b != e) {
+        while (b != e)
+        {
             new (b) T;
             deleter.setEnd(++b);
         }
@@ -139,90 +160,106 @@ struct ArrayBuilder {
     void release() { m_ptr = nullptr; }
 
     std::size_t m_size;
-    void* m_ptr { nullptr };
+    void* m_ptr{nullptr};
 };
 
 template <class T>
-struct ArraySelector {
+struct ArraySelector
+{
     using type = T;
 };
 
 template <class T>
-struct is_array_placeholder : std::false_type {
+struct is_array_placeholder : std::false_type
+{
 };
 template <class T>
-struct is_array_placeholder<ArrayBuilder<T>> : std::true_type {
+struct is_array_placeholder<ArrayBuilder<T>> : std::true_type
+{
 };
 
 template <class T>
-struct void_ {
+struct void_
+{
     using type = void;
 };
 
 template <class T, class = void>
-struct is_fc_array : std::false_type {
+struct is_fc_array : std::false_type
+{
 };
 template <class T>
-struct is_fc_array<T, typename void_<typename T::fc_handle>::type> : std::true_type {
+struct is_fc_array<T, typename void_<typename T::fc_handle>::type>
+    : std::true_type
+{
     using enable = T;
 };
 
-struct Ignore {
+struct Ignore
+{
     Ignore() = default;
     template <class T>
-    Ignore(T&&) {}
+    Ignore(T&&)
+    {
+    }
 };
 template <class T, class = void>
-struct PreImplConverter {
+struct PreImplConverter
+{
     using type = Ignore;
 };
 template <class T>
-struct PreImplConverter<T[], void> {
+struct PreImplConverter<T[], void>
+{
     using type = ArrayBuilder<T>;
 };
 template <class T>
-struct PreImplConverter<T, typename void_<typename is_fc_array<T>::enable>::type> {
+struct PreImplConverter<T,
+                        typename void_<typename is_fc_array<T>::enable>::type>
+{
     using type = ArrayBuilder<typename T::type>;
 };
 
-namespace detail {
-    template <std::size_t Idx, class Arg1, class... Args>
-    decltype(auto) pickFromPack(Arg1&& arg1, Args&&... args)
-    {
-        if constexpr (Idx == 0)
-            return std::forward<Arg1>(arg1);
-        else
-            return pickFromPack<Idx - 1>(std::forward<Args>(args)...);
-    }
+namespace detail
+{
+template <std::size_t Idx, class Arg1, class... Args>
+decltype(auto) pickFromPack(Arg1&& arg1, Args&&... args)
+{
+    if constexpr (Idx == 0)
+        return std::forward<Arg1>(arg1);
+    else
+        return pickFromPack<Idx - 1>(std::forward<Args>(args)...);
+}
 
-    template <int Idx, class T, class Fn>
-    void callWithIdx(const T& t, Fn&& f)
-    {
-        f(get_element<Idx>(t), std::integral_constant<int, Idx>());
-    }
+template <int Idx, class T, class Fn>
+void callWithIdx(const T& t, Fn&& f)
+{
+    f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+}
 
-    template <int Idx, class T, class Fn>
-    void callWithIdx(T& t, Fn&& f)
-    {
-        f(get_element<Idx>(t), std::integral_constant<int, Idx>());
-    }
+template <int Idx, class T, class Fn>
+void callWithIdx(T& t, Fn&& f)
+{
+    f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+}
 
-    template <typename T, typename F, int... Is>
-    void for_each(T&& t, F&& f, std::integer_sequence<int, Is...>)
-    {
-        if constexpr (std::remove_reference_t<T>::Size > 0)
-            auto l = { (callWithIdx<Is>(t, f), 0)... };
-    }
+template <typename T, typename F, int... Is>
+void for_each(T&& t, F&& f, std::integer_sequence<int, Is...>)
+{
+    if constexpr (std::remove_reference_t<T>::Size > 0)
+        auto l = {(callWithIdx<Is>(t, f), 0)...};
+}
 
-    template <int I, int N, typename T1, typename T2, typename F>
-    void for_each_zipped(T1&& t1, T2&& t2, F&& f)
+template <int I, int N, typename T1, typename T2, typename F>
+void for_each_zipped(T1&& t1, T2&& t2, F&& f)
+{
+    if constexpr (I != N)
     {
-        if constexpr (I != N) {
-            f(get_element<I>(t1), get_element<I>(t2));
-            for_each_zipped<I + 1, N, T1, T2, F>(t1, t2, f);
-        }
+        f(get_element<I>(t1), get_element<I>(t2));
+        for_each_zipped<I + 1, N, T1, T2, F>(t1, t2, f);
     }
 }
+} // namespace detail
 
 template <typename... Ts, typename F>
 void for_each_in_tuple(fc::tuple<Ts...>& t, F&& f)
@@ -233,13 +270,15 @@ void for_each_in_tuple(fc::tuple<Ts...>& t, F&& f)
 template <int... Is>
 constexpr auto reverseIntegerSequence(std::integer_sequence<int, Is...> const&)
 {
-    return std::integer_sequence<int, sizeof...(Is) - 1 - Is...> {};
+    return std::integer_sequence<int, sizeof...(Is) - 1 - Is...>{};
 }
 
 template <typename... Ts, typename F>
 void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
 {
-    detail::for_each(t, f, reverseIntegerSequence(std::make_integer_sequence<int, sizeof...(Ts)>()));
+    detail::for_each(t, f,
+                     reverseIntegerSequence(
+                         std::make_integer_sequence<int, sizeof...(Ts)>()));
 }
 
 template <typename... Ts, typename F>
@@ -255,63 +294,91 @@ void for_each_zipped(T1& t1, T2& t2, F f)
 }
 
 template <class T, class = void>
-struct GetAlignmentRequirement {
+struct GetAlignmentRequirement
+{
     static constexpr auto value = alignof(T);
 };
 template <class T>
-struct GetAlignmentRequirement<T[], void> {
+struct GetAlignmentRequirement<T[], void>
+{
     static constexpr auto value = alignof(T);
 };
 template <class T>
-struct GetAlignmentRequirement<T, typename void_<typename is_fc_array<T>::enable>::type> {
+struct GetAlignmentRequirement<
+    T, typename void_<typename is_fc_array<T>::enable>::type>
+{
     static constexpr std::size_t value = T::array_alignment;
 };
 
 template <class... Types>
-struct CollectAlignment {
-    static constexpr auto value = std::max({ std::size_t(1), GetAlignmentRequirement<Types>::value... });
+struct CollectAlignment
+{
+    static constexpr auto value =
+        std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 
 template <class T>
-struct DeleteFn {
+struct DeleteFn
+{
     void operator()(void* ptr) const
     {
         if (typeCreated)
             static_cast<T*>(ptr)->~T();
         ::operator delete(ptr);
     }
-    bool typeCreated { false };
+    bool typeCreated{false};
 };
 
 template <class Derived, class... T>
-class alignas(CollectAlignment<T...>::value) FlexibleBase : public fc::tuple<typename ArraySelector<T>::type...> {
-private:
+class alignas(CollectAlignment<T...>::value) FlexibleBase
+    : public fc::tuple<typename ArraySelector<T>::type...>
+{
+  private:
     using Base = fc::tuple<typename ArraySelector<T>::type...>;
     using Base::Base;
 
-protected:
+  protected:
     using FLB = FlexibleBase;
     ~FlexibleBase() = default;
 
-public:
+  public:
     static constexpr auto numMembers() { return Base::Size; }
 
     template <auto e>
-    decltype(auto) get() { return get_element<e>(*this); }
+    decltype(auto) get()
+    {
+        return get_element<e>(*this);
+    }
     template <auto e>
-    decltype(auto) get() const { return get_element<e>(*this); }
+    decltype(auto) get() const
+    {
+        return get_element<e>(*this);
+    }
 
     template <auto e>
-    decltype(auto) begin() const { return get_element<e>(*this).begin(this); }
+    decltype(auto) begin() const
+    {
+        return get_element<e>(*this).begin(this);
+    }
     template <auto e>
-    decltype(auto) end() const { return get_element<e>(*this).end(this); }
+    decltype(auto) end() const
+    {
+        return get_element<e>(*this).end(this);
+    }
 
     template <auto e>
-    decltype(auto) begin() { return get_element<e>(*this).begin(this); }
+    decltype(auto) begin()
+    {
+        return get_element<e>(*this).begin(this);
+    }
     template <auto e>
-    decltype(auto) end() { return get_element<e>(*this).end(this); }
+    decltype(auto) end()
+    {
+        return get_element<e>(*this).end(this);
+    }
 
-    struct DestroyFn {
+    struct DestroyFn
+    {
         void operator()(Derived* ptr) const { Derived::destroy(ptr); }
     };
 
@@ -331,14 +398,17 @@ public:
         std::size_t numBytesForArrays = 0;
         {
             for_each_in_tuple(
-                PreImpl(),
-                [&]<class U, class Idx>(const U& u, Idx idx) mutable {
+                PreImpl(), [&]<class U, class Idx>(const U& u,
+                                                   Idx idx) mutable {
                     if constexpr (is_array_placeholder<U>::value)
-                        numBytesForArrays += u.numRequiredBytes(sizeof(Derived) + numBytesForArrays, detail::pickFromPack<Idx::value>(args...));
+                        numBytesForArrays += u.numRequiredBytes(
+                            sizeof(Derived) + numBytesForArrays,
+                            detail::pickFromPack<Idx::value>(args...));
                 });
         }
 
-        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(::operator new(sizeof(Derived) + numBytesForArrays));
+        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
+            ::operator new(sizeof(Derived) + numBytesForArrays));
 
         PreImpl pi(args...);
 
@@ -347,16 +417,15 @@ public:
 
         void* arrayBuffer = ret + 1;
         for_each_in_tuple(
-            pi,
-            [&]<class U>(U & u, auto idx) mutable {
+            pi, [&]<class U>(U & u, auto idx) mutable {
                 if constexpr (is_array_placeholder<U>::value)
                     u.consume(arrayBuffer, numBytesForArrays);
             });
 
         for_each_zipped<sizeof...(T)>(
-            *ret, pi,
-            []<class U, class K>(U & u, K & k) {
-                if constexpr (is_array_placeholder<K>::value) {
+            *ret, pi, []<class U, class K>(U & u, K & k) {
+                if constexpr (is_array_placeholder<K>::value)
+                {
                     u.setLocation(k.begin(), k.end());
                     k.release();
                 }
@@ -371,10 +440,11 @@ public:
         if (!p)
             return;
         reverse_for_each_in_tuple(
-            *p,
-            [p]<class U>(U & u, auto idx) {
+            *p, [p]<class U>(U & u, auto idx) {
                 if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
-                    if constexpr (!std::is_trivially_destructible<typename U::type>::value) {
+                    if constexpr (!std::is_trivially_destructible<
+                                      typename U::type>::value)
+                    {
                         reverse_destroy(u.begin(p), u.end(p));
                     }
             });
@@ -384,13 +454,17 @@ public:
 };
 
 template <class T>
-void destroy(const T* p) { T::destroy(p); }
+void destroy(const T* p)
+{
+    T::destroy(p);
+}
 
 template <class... Args>
-struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...> {
+struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
+{
     using FlexibleBase<FlexibleClass<Args...>, Args...>::FlexibleBase;
 };
 
-}
+} // namespace fc
 
 #endif // FC_FLEXCLASS_CORE_HPP

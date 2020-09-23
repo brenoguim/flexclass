@@ -1,3 +1,11 @@
 ---
-BasedOnStyle:  WebKit
+BasedOnStyle: LLVM
+IndentWidth: 4
+---
+Language: Cpp
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+BreakBeforeBraces: Allman
+AlwaysBreakTemplateDeclarations: Yes
 ...
