@@ -53,9 +53,13 @@ struct ArrayDeleter {
 
 inline void* incr(void* in, std::size_t len) { return static_cast<char*>(in) + len; }
 
-template <class T>
-inline auto align(void* ptr)
+template <class T, class U>
+inline auto align(U* u)
 {
+    void* ptr = u;
+    if (alignof(U) >= alignof(T))
+        return static_cast<T*>(ptr);
+
     std::size_t space = std::numeric_limits<std::size_t>::max();
     return static_cast<T*>(std::align(alignof(T), 0, ptr, space));
 }

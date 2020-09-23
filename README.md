@@ -237,7 +237,6 @@ FlexibleBase::make(Args... args)
     - Support passing arguments to the array constructor via input iterator or lambda
     - Provide a way to group "array sizes" with their type. The constructor is disconnected
 - Add performance tests
-    - Make aligner constexpr? I suspect it can be much more efficient than it is now
 - Add range-for support for AdjacentRanges.
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Document customization infrastructure
