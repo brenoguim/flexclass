@@ -247,8 +247,15 @@ struct CollectAlignment {
     static constexpr auto value = std::max({ std::size_t(1), GetAlignmentRequirement<Types>::value... });
 };
 
+template <class T>
 struct DeleteFn {
-    void operator()(void* ptr) const { ::operator delete(ptr); }
+    void operator()(void* ptr) const
+    {
+        if (typeCreated)
+            static_cast<T*>(ptr)->~T();
+        ::operator delete(ptr);
+    }
+    bool typeCreated { false };
 };
 
 template <class Derived, class... T>
@@ -310,19 +317,20 @@ public:
                 });
         }
 
-        auto implBuffer = std::unique_ptr<void, DeleteFn>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
-        void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
+        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(::operator new(sizeof(FlexibleBase) + numBytesForArrays));
 
         PreImpl pi(args...);
 
+        auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
+        implBuffer.get_deleter().typeCreated = true;
+
+        void* arrayBuffer = static_cast<char*>(implBuffer.get()) + sizeof(FlexibleBase);
         for_each_in_tuple(
             pi,
             [&]<class U>(U & u) mutable {
                 if constexpr (is_array_placeholder<U>::value)
                     u.consume(arrayBuffer, numBytesForArrays);
             });
-
-        auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
 
         for_each_zipped<sizeof...(T)>(
             *ret, pi,

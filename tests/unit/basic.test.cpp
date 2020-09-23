@@ -308,6 +308,13 @@ struct Thrower
     int m_id;
 };
 
+TEST_CASE( "All objects should be destroyed in the reverse order they were created", "[exception]" )
+{
+    resetToThrowAt(100000);
+    auto initStr = "";
+    auto m = fc::FlexibleClass<Thrower, Thrower, Thrower, Thrower[], Thrower[]>::make_unique(initStr, initStr, initStr, 100, 100);
+}
+
 TEST_CASE( "Strong exception guarantees when member throws on constructor", "[exception]" )
 {
     resetToThrowAt(2);
