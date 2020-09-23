@@ -1,19 +1,21 @@
 #ifndef FC_FLEXCLASS_ARRAYS_HPP
 #define FC_FLEXCLASS_ARRAYS_HPP
 
-namespace fc
-{
+#include "core.hpp"
 
-template<class T> struct Array
-{
-    template<class U> Array(U&&) {}
+namespace fc {
+
+template <class T>
+struct Array {
+    template <class U>
+    Array(U&&) {}
     void setLocation(T* begin, T* end) { m_begin = begin; }
 
     using type = T;
     using fc_handle = handle::array;
     static constexpr auto array_alignment = alignof(T);
 
-    template<class Derived>
+    template <class Derived>
     auto begin(const Derived* ptr) const { return m_begin; }
 
     auto begin() const { return m_begin; }
@@ -21,19 +23,24 @@ template<class T> struct Array
     T* m_begin;
 };
 
-template<class T> struct Range
-{
-    template<class U> Range(U&&) {}
-    void setLocation(T* begin, T* end) { m_begin = begin; m_end = end; }
+template <class T>
+struct Range {
+    template <class U>
+    Range(U&&) {}
+    void setLocation(T* begin, T* end)
+    {
+        m_begin = begin;
+        m_end = end;
+    }
 
     using type = T;
     using fc_handle = handle::range;
     static constexpr auto array_alignment = alignof(T);
 
-    template<class Derived>
+    template <class Derived>
     auto begin(const Derived* ptr) const { return m_begin; }
 
-    template<class Derived>
+    template <class Derived>
     auto end(const Derived* ptr) const { return m_end; }
 
     auto begin() const { return m_begin; }
@@ -43,16 +50,17 @@ template<class T> struct Range
     T* m_end;
 };
 
-template<class T, int El = -1> struct AdjacentArray
-{
-    template<class U> AdjacentArray(U&&) {}
+template <class T, int El = -1>
+struct AdjacentArray {
+    template <class U>
+    AdjacentArray(U&&) {}
     void setLocation(T* begin, T* end) {}
 
     using type = T;
     using fc_handle = handle::array;
     static constexpr auto array_alignment = alignof(T);
 
-    template<class Derived>
+    template <class Derived>
     auto begin(const Derived* ptr) const
     {
         if constexpr (El == -1)
@@ -62,16 +70,17 @@ template<class T, int El = -1> struct AdjacentArray
     }
 };
 
-template<class T, int El = -1> struct AdjacentRange
-{
-    template<class U> AdjacentRange(U&&) {}
+template <class T, int El = -1>
+struct AdjacentRange {
+    template <class U>
+    AdjacentRange(U&&) {}
     void setLocation(T* begin, T* end) { m_end = end; }
 
     using type = T;
     using fc_handle = handle::range;
     static constexpr auto array_alignment = alignof(T);
 
-    template<class Derived>
+    template <class Derived>
     auto begin(const Derived* ptr) const
     {
         if constexpr (El == -1)
@@ -80,18 +89,16 @@ template<class T, int El = -1> struct AdjacentRange
             return aligner(ptr->template end<El>()).template get<T>();
     }
 
-    template<class Derived>
+    template <class Derived>
     auto end(const Derived* ptr) const { return m_end; }
 
     T* m_end;
 };
 
-template<class T>
-struct ArraySelector<T[]>
-{
-    using type =
-        std::conditional_t<std::is_trivially_destructible<T>::value,
-                           Array<T>, Range<T>>;
+template <class T>
+struct ArraySelector<T[]> {
+    using type = std::conditional_t<std::is_trivially_destructible<T>::value,
+        Array<T>, Range<T>>;
 };
 
 }

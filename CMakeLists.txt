@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 
 include(cmake/Deploy.cmake)
+include(cmake/Test.cmake)
 
 project(Flexclass CXX)
 
