@@ -205,6 +205,7 @@ TODO: Add a description for this example
 - Add range-for support for AdjacentRanges.
 - Use static asserts to provide better diagnostics on common mistakes:
     - Passing the wrong number of parameters
+    - Instantiating a flexclass containing an undefined type
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Documentation - create a separate readme for the details
     - Customization infrastructure
