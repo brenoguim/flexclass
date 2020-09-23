@@ -329,6 +329,9 @@ struct DeleteFn
     bool typeCreated{false};
 };
 
+template <class T>
+using base_type = std::remove_cv_t<std::remove_reference_t<T>>;
+
 template <class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase
     : public fc::tuple<typename ArraySelector<T>::type...>
@@ -397,14 +400,14 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
 
         std::size_t numBytesForArrays = 0;
         {
-            for_each_in_tuple(
-                PreImpl(), [&]<class U, class Idx>(const U& u,
-                                                   Idx idx) mutable {
-                    if constexpr (is_array_placeholder<U>::value)
-                        numBytesForArrays += u.numRequiredBytes(
-                            sizeof(Derived) + numBytesForArrays,
-                            detail::pickFromPack<Idx::value>(args...));
-                });
+            for_each_in_tuple(PreImpl(), [&](const auto& u, auto idx) mutable {
+                using U = base_type<decltype(u)>;
+                using Idx = decltype(idx);
+                if constexpr (is_array_placeholder<U>::value)
+                    numBytesForArrays += u.numRequiredBytes(
+                        sizeof(Derived) + numBytesForArrays,
+                        detail::pickFromPack<Idx::value>(args...));
+            });
         }
 
         auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
@@ -416,20 +419,21 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
         implBuffer.get_deleter().typeCreated = true;
 
         void* arrayBuffer = ret + 1;
-        for_each_in_tuple(
-            pi, [&]<class U>(U & u, auto idx) mutable {
-                if constexpr (is_array_placeholder<U>::value)
-                    u.consume(arrayBuffer, numBytesForArrays);
-            });
+        for_each_in_tuple(pi, [&](auto& u, auto idx) mutable {
+            using U = base_type<decltype(u)>;
+            using Idx = decltype(idx);
+            if constexpr (is_array_placeholder<U>::value)
+                u.consume(arrayBuffer, numBytesForArrays);
+        });
 
-        for_each_zipped<sizeof...(T)>(
-            *ret, pi, []<class U, class K>(U & u, K & k) {
-                if constexpr (is_array_placeholder<K>::value)
-                {
-                    u.setLocation(k.begin(), k.end());
-                    k.release();
-                }
-            });
+        for_each_zipped<sizeof...(T)>(*ret, pi, [](auto& u, auto& k) {
+            using K = base_type<decltype(k)>;
+            if constexpr (is_array_placeholder<K>::value)
+            {
+                u.setLocation(k.begin(), k.end());
+                k.release();
+            }
+        });
 
         implBuffer.release();
         return ret;
@@ -439,15 +443,15 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         if (!p)
             return;
-        reverse_for_each_in_tuple(
-            *p, [p]<class U>(U & u, auto idx) {
-                if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
-                    if constexpr (!std::is_trivially_destructible<
-                                      typename U::type>::value)
-                    {
-                        reverse_destroy(u.begin(p), u.end(p));
-                    }
-            });
+        reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
+            using U = base_type<decltype(u)>;
+            if constexpr (is_fc_array<U>::value)
+                if constexpr (!std::is_trivially_destructible<
+                                  typename U::type>::value)
+                {
+                    reverse_destroy(u.begin(p), u.end(p));
+                }
+        });
         p->~Derived();
         ::operator delete(const_cast<Derived*>(p));
     }
