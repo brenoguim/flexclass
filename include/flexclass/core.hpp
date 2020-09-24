@@ -3,11 +3,8 @@
 
 #include "tuple.hpp"
 
-#include <algorithm>
 #include <cassert>
 #include <limits>
-#include <memory>
-#include <tuple>
 #include <type_traits>
 
 namespace fc
@@ -368,6 +365,38 @@ struct DeleteFn
     bool typeCreated{false};
 };
 
+template <class T, class Deleter>
+struct unique_ptr : private Deleter
+{
+    explicit unique_ptr(T* t) : m_t(t) {}
+    unique_ptr(const unique_ptr&) = delete;
+    unique_ptr(unique_ptr&& other)
+        : Deleter(std::move(other.get_deleter())),
+          m_t(std::exchange(other.m_t, nullptr))
+    {
+    }
+    unique_ptr& operator=(const unique_ptr&) = delete;
+    unique_ptr& operator=(unique_ptr&& other)
+    {
+        using std::swap;
+        swap(get_deleter(), other.get_deleter());
+        swap(m_t, other.m_t);
+        return *this;
+    }
+    ~unique_ptr()
+    {
+        if (m_t)
+            get_deleter()(m_t);
+    }
+    void release() { m_t = nullptr; }
+    Deleter& get_deleter() { return *this; }
+    T* operator->() { return m_t; }
+    T* operator->() const { return m_t; }
+    T* get() { return m_t; }
+    T* get() const { return m_t; }
+    T* m_t;
+};
+
 template <class T>
 using base_type = std::remove_cv_t<std::remove_reference_t<T>>;
 
@@ -424,7 +453,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
         void operator()(Derived* ptr) const { Derived::destroy(ptr); }
     };
 
-    using UniquePtr = std::unique_ptr<Derived, DestroyFn>;
+    using UniquePtr = unique_ptr<Derived, DestroyFn>;
 
     template <class... Args>
     static auto make_unique(Args&&... args)
@@ -451,7 +480,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
                 });
         }
 
-        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
+        auto implBuffer = unique_ptr<void, DeleteFn<Derived>>(
             ::operator new(sizeof(Derived) + numBytesForArrays));
 
         ArrayBuilders pi;

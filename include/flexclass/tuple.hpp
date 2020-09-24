@@ -1,9 +1,7 @@
 #ifndef FC_FLEXCLASS_TUPLE_HPP
 #define FC_FLEXCLASS_TUPLE_HPP
 
-#include <algorithm>
 #include <cstdint>
-#include <memory>
 
 namespace fc
 {
