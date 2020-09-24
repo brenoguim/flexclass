@@ -204,18 +204,18 @@ struct Ignore
     }
 };
 template <class T, class = void>
-struct PreImplConverter
+struct ArrayBuildersConverter
 {
     using type = Ignore;
 };
 template <class T>
-struct PreImplConverter<T[], void>
+struct ArrayBuildersConverter<T[], void>
 {
     using type = ArrayBuilder<T>;
 };
 template <class T>
-struct PreImplConverter<T,
-                        typename void_<typename is_fc_array<T>::enable>::type>
+struct ArrayBuildersConverter<
+    T, typename void_<typename is_fc_array<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::type>;
 };
@@ -396,24 +396,26 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     template <class... Args>
     static auto make(Args&&... args)
     {
-        using PreImpl = fc::tuple<typename PreImplConverter<T>::type...>;
+        using ArrayBuilders =
+            fc::tuple<typename ArrayBuildersConverter<T>::type...>;
 
         std::size_t numBytesForArrays = 0;
         {
-            for_each_in_tuple(PreImpl(), [&](const auto& u, auto idx) mutable {
-                using U = base_type<decltype(u)>;
-                using Idx = decltype(idx);
-                if constexpr (is_array_placeholder<U>::value)
-                    numBytesForArrays += u.numRequiredBytes(
-                        sizeof(Derived) + numBytesForArrays,
-                        detail::pickFromPack<Idx::value>(args...));
-            });
+            for_each_in_tuple(
+                ArrayBuilders(), [&](const auto& u, auto idx) mutable {
+                    using U = base_type<decltype(u)>;
+                    using Idx = decltype(idx);
+                    if constexpr (is_array_placeholder<U>::value)
+                        numBytesForArrays += u.numRequiredBytes(
+                            sizeof(Derived) + numBytesForArrays,
+                            detail::pickFromPack<Idx::value>(args...));
+                });
         }
 
         auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
             ::operator new(sizeof(Derived) + numBytesForArrays));
 
-        PreImpl pi(args...);
+        ArrayBuilders pi(args...);
 
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
         implBuffer.get_deleter().typeCreated = true;
