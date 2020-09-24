@@ -195,7 +195,6 @@ TODO: Add a description for this example
 ## TODO/Known issues
 - Provide ways to convert from a Adjacent member to base
     - `convert<int element>(T*) -> fc::FlexibleClass<int, fc::AdjacentArray<T>>*`
-- Implement `Optional` or `Maybe` as a short-cut for an array with 0 or 1 element.
 - Add performance tests
 - Add range-for support for AdjacentRanges.
 - Use static asserts to provide better diagnostics on common mistakes:
@@ -203,4 +202,10 @@ TODO: Add a description for this example
     - Instantiating a flexclass containing an undefined type
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Documentation - review
+- Implement `Optional` or `Maybe` as a short-cut for an array with 0 or 1 element.
+    - Then it would be possible to add an example of creating a mixin system
+    - Or maybe just a MultiVariant<A, B, C>, where existing objects could be just "A", "B", "C", "A B", "B C", "A C" or "A B C"
+        - what's the application for that?
 - Support arrays before the base
+
+
