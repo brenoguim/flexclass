@@ -9,6 +9,10 @@
 
 namespace fc
 {
+struct WithAllocator
+{
+};
+static constexpr WithAllocator withAllocator;
 
 template <class T>
 struct Handle
@@ -353,15 +357,17 @@ struct CollectAlignment
         std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 
-template <class T>
+template <class T, class Alloc>
 struct DeleteFn
 {
+    DeleteFn(Alloc& alloc) : m_alloc(&alloc) {}
     void operator()(void* ptr) const
     {
         if (typeCreated)
             static_cast<T*>(ptr)->~T();
-        ::operator delete(ptr);
+        m_alloc->deallocate(ptr);
     }
+    Alloc* m_alloc;
     bool typeCreated{false};
 };
 
@@ -369,6 +375,11 @@ template <class T, class Deleter>
 struct unique_ptr : private Deleter
 {
     explicit unique_ptr(T* t) : m_t(t) {}
+    template <class DeleterArg>
+    unique_ptr(T* t, DeleterArg&& darg)
+        : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
+    {
+    }
     unique_ptr(const unique_ptr&) = delete;
     unique_ptr(unique_ptr&& other)
         : Deleter(std::move(other.get_deleter())),
@@ -395,6 +406,12 @@ struct unique_ptr : private Deleter
     T* get() { return m_t; }
     T* get() const { return m_t; }
     T* m_t;
+};
+
+struct NewDeleteAllocator
+{
+    void* allocate(std::size_t sz) { return ::operator new(sz); }
+    void deallocate(void* ptr) { ::operator delete(const_cast<void*>(ptr)); }
 };
 
 template <class T>
@@ -464,6 +481,19 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     template <class... Args>
     static auto make(Args&&... args)
     {
+        NewDeleteAllocator alloc;
+        return makeWithAllocator(alloc, std::forward<Args>(args)...);
+    }
+
+    template <class Alloc, class... Args>
+    static auto make(WithAllocator, Alloc& alloc, Args&&... args)
+    {
+        return makeWithAllocator(alloc, std::forward<Args>(args)...);
+    }
+
+    template <class Alloc, class... Args>
+    static auto makeWithAllocator(Alloc& alloc, Args&&... args)
+    {
         using ArrayBuilders =
             fc::tuple<typename ArrayBuildersConverter<T>::type...>;
 
@@ -480,8 +510,8 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
                 });
         }
 
-        auto implBuffer = unique_ptr<void, DeleteFn<Derived>>(
-            ::operator new(sizeof(Derived) + numBytesForArrays));
+        auto implBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
+            alloc.allocate(sizeof(Derived) + numBytesForArrays), alloc);
 
         ArrayBuilders pi;
 
@@ -513,6 +543,19 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
 
     static void destroy(const Derived* p)
     {
+        NewDeleteAllocator alloc;
+        destroyWithAllocator(p, alloc);
+    }
+
+    template <class Alloc>
+    static void destroy(const Derived* p, Alloc&& alloc)
+    {
+        destroyWithAllocator(p, alloc);
+    }
+
+    template <class Alloc>
+    static void destroyWithAllocator(const Derived* p, Alloc&& alloc)
+    {
         if (!p)
             return;
         reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
@@ -525,7 +568,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
                 }
         });
         p->~Derived();
-        ::operator delete(const_cast<Derived*>(p));
+        alloc.deallocate(const_cast<Derived*>(p));
     }
 };
 
@@ -533,6 +576,12 @@ template <class T>
 void destroy(const T* p)
 {
     T::destroy(p);
+}
+
+template <class T, class Alloc>
+void destroy(const T* p, Alloc&& alloc)
+{
+    T::destroy(p, alloc);
 }
 
 template <class... Args>

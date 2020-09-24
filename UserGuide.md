@@ -185,6 +185,26 @@ auto m = fc::FlexibleClass<fc::Array<int>>::make(fc::arg(10, v.begin()));
 ```
 In this scenario, the FlexibleClass will contain values `1` to `10` obtained from the iterator.
 
+# Allocators
+
+Construction with custom allocators is also supported. However, `Flexclass` does not store the allocator in the structure like other data structures (`std::vector`, `std::map`, ... ).
+Generally there will be a main entity managing all flexclasses, so it knows which allocator to use. Also, adding the allocator as a member can be done over-the-hood, by the user.
+
+To allocate using a custom allocator, invoke `::make` with `fc::withAllocator` and your allocator as an argument:
+```
+using FC = fc::FlexibleClass<int, std::string, long[], bool>;
+
+MyAllocator alloc;
+
+auto fclass = FC::make(fc::withAllocator, alloc, 1, "mystring", 200, true);
+...
+fc::destroy(fclass, alloc);
+
+```
+
+Notice the allocator will not be forwarded to subobjects (like `std::string`) but again, that can be done manually by the user.
+
+
 # Exception Guarantees
 
 `Flexclass` is well behaved with respect to lifetimes and exceptions. That means all objects created by it will be destroyed in the reverse order:
