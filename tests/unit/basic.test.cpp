@@ -409,3 +409,16 @@ TEST_CASE( "Arrays should be destroyed in the reverse order", "[exception]" )
     std::string initStr = "default initialized string for testing";
     auto m = fc::FlexibleClass<std::string, Thrower[], Thrower[]>::make_unique(initStr, 1, 1);
 }
+
+TEST_CASE( "Support initialization of arrays" , "[basic]" )
+{
+    auto m = fc::FlexibleClass<int, int[]>::make_unique(10, fc::arg(10));
+
+    std::vector<int> v;
+    v.resize(100);
+    std::iota(v.begin(), v.end(), 0);
+
+    m = fc::FlexibleClass<int, int[]>::make_unique(10, fc::arg(10, v.begin()));
+    CHECK( std::equal(m->begin<1>(), m->begin<1>() + 10, v.begin()) );
+
+}

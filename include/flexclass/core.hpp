@@ -109,11 +109,26 @@ auto aligner(const T* t, std::size_t len)
     return aligner_impl<T>{const_cast<T*>(t)}.advance(len);
 }
 
+struct Default
+{
+};
+
+template <class InputIt>
 struct Arg
 {
     Arg(std::size_t size) : m_size(size) {}
+    Arg(std::size_t size, InputIt it) : m_size(size), m_it(it) {}
     std::size_t m_size;
+    InputIt m_it;
 };
+
+auto arg(std::size_t size) { return Arg<Default>{size}; }
+
+template <class InputIt>
+auto arg(std::size_t size, InputIt it)
+{
+    return Arg<InputIt>{size, it};
+}
 
 template <class T>
 struct ArrayBuilder
@@ -124,7 +139,19 @@ struct ArrayBuilder
             reverse_destroy(m_begin, m_end);
     }
 
-    void consume(void*& buf, std::size_t& space, const Arg& arg)
+    void consume(void*& buf, std::size_t& space, std::size_t sz)
+    {
+        consume(buf, space, Arg<Default>{sz});
+    }
+
+    template <class InputIt>
+    void consume(void*& buf, std::size_t& space, Arg<InputIt>&& arg)
+    {
+        consume(buf, space, arg);
+    }
+
+    template <class InputIt>
+    void consume(void*& buf, std::size_t& space, Arg<InputIt>& arg)
     {
         auto numBytes = arg.m_size * sizeof(T);
         auto ptr = std::align(alignof(T), numBytes, buf, space);
@@ -138,7 +165,10 @@ struct ArrayBuilder
         ArrayDeleter<T> deleter(b);
         for (auto it = b; it != e;)
         {
-            new (it) T;
+            if constexpr (std::is_same_v<InputIt, Default>)
+                new (it) T;
+            else
+                new (it) T(*arg.m_it++);
             deleter.setEnd(++it);
         }
         deleter.release();
@@ -147,7 +177,14 @@ struct ArrayBuilder
         m_end = e;
     }
 
-    static std::size_t numRequiredBytes(std::size_t offset, const Arg& arg)
+    static std::size_t numRequiredBytes(std::size_t offset, std::size_t sz)
+    {
+        return numRequiredBytes(offset, Arg<Default>{sz});
+    }
+
+    template <class InputIt>
+    static std::size_t numRequiredBytes(std::size_t offset,
+                                        const Arg<InputIt>& arg)
     {
         auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();

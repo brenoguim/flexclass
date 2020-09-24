@@ -196,8 +196,6 @@ TODO: Add a description for this example
 ## TODO/Known issues
 - Flexclass constructors
     - Allocator support
-    - Support passing arguments to the array constructor via input iterator or lambda
-    - Provide a way to group "array sizes" with their type. The constructor is disconnected
 - Provide ways to convert from a Adjacent member to base
     - `convert<int element>(T*) -> fc::FlexibleClass<int, fc::AdjacentArray<T>>*`
 - Implement `Optional` or `Maybe` as a short-cut for an array with 0 or 1 element.
