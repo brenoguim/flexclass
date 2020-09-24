@@ -125,7 +125,7 @@ struct NearAndSmallRange // I know my Range will be very close and very small
     void setLocation(T* begin, T* end)
     {
         auto size = end - begin;
-        auto offset = (uintptr_t)end - (uintptr_t)this;
+        auto offset = (uintptr_t)begin - (uintptr_t)this;
         
         assert(size   <= std::numeric_limits<std::uint8_t>::max());
         assert(offset <= std::numeric_limits<std::uint8_t>::max());
