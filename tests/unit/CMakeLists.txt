@@ -3,6 +3,7 @@ set(UNIT_TEST_LIST
     shared_array_example
     variant_array_example
     tuple
+    memory_with_allocator
 )
 
 add_library(test_infra
