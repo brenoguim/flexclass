@@ -5,18 +5,12 @@
 
 namespace fc
 {
-
 template <class T>
-struct Array
+struct Array : Handle<T>
 {
-    template <class U>
-    Array(U&&)
-    {
-    }
-    void setLocation(T* begin, T* end) { m_begin = begin; }
+    using Handle<T>::Handle;
 
-    using type = T;
-    using fc_handle = handle::array;
+    void setLocation(T* begin, T* end) { m_begin = begin; }
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -30,20 +24,15 @@ struct Array
 };
 
 template <class T>
-struct Range
+struct Range : Handle<T>
 {
-    template <class U>
-    Range(U&&)
-    {
-    }
+    using Handle<T>::Handle;
+
     void setLocation(T* begin, T* end)
     {
         m_begin = begin;
         m_end = end;
     }
-
-    using type = T;
-    using fc_handle = handle::range;
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -65,16 +54,11 @@ struct Range
 };
 
 template <class T, int El = -1>
-struct AdjacentArray
+struct AdjacentArray : Handle<T>
 {
-    template <class U>
-    AdjacentArray(U&&)
-    {
-    }
-    void setLocation(T* begin, T* end) {}
+    using Handle<T>::Handle;
 
-    using type = T;
-    using fc_handle = handle::array;
+    void setLocation(T* begin, T* end) {}
 
     template <class Derived>
     auto begin(const Derived* ptr) const
@@ -87,16 +71,11 @@ struct AdjacentArray
 };
 
 template <class T, int El = -1>
-struct AdjacentRange
+struct AdjacentRange : Handle<T>
 {
-    template <class U>
-    AdjacentRange(U&&)
-    {
-    }
-    void setLocation(T* begin, T* end) { m_end = end; }
+    using Handle<T>::Handle;
 
-    using type = T;
-    using fc_handle = handle::range;
+    void setLocation(T* begin, T* end) { m_end = end; }
 
     template <class Derived>
     auto begin(const Derived* ptr) const

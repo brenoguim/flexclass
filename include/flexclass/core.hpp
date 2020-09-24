@@ -13,15 +13,16 @@
 namespace fc
 {
 
-namespace handle
+template <class T>
+struct Handle
 {
-struct range
-{
+    template <class U>
+    Handle(U&&)
+    {
+    }
+    using fc_handle = T;
+    using type = T;
 };
-struct array
-{
-};
-} // namespace handle
 
 template <class T>
 void reverse_destroy(T* b, T* e)

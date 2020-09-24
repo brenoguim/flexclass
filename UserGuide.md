@@ -131,14 +131,8 @@ Here is a customization example of a handle that assumes that the data is very c
 
 ```
 template <class T>
-struct NearAndSmallRange // I know my Range will be very close and very small
+struct NearAndSmallRange : fc::Handle<T> // I know my Range will be very close and very small
 {
-    template <class U> NearAndSmallRange(U&&) {} // Boilerplate that won't be needed in future versions.
-    
-    // Definition of some types to make this recognizable as a handle
-    using type = T;
-    using fc_handle = fc::handle::range;
-    
     // This is called by the library to inform where the array for this handle was placed
     void setLocation(T* begin, T* end)
     {
