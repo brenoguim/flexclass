@@ -225,11 +225,11 @@ struct void_
 };
 
 template <class T, class = void>
-struct is_fc_array : std::false_type
+struct is_handle : std::false_type
 {
 };
 template <class T>
-struct is_fc_array<T, typename void_<typename T::fc_handle>::type>
+struct is_handle<T, typename void_<typename T::fc_handle>::type>
     : std::true_type
 {
     using enable = T;
@@ -255,7 +255,7 @@ struct ArrayBuildersConverter<T[], void>
 };
 template <class T>
 struct ArrayBuildersConverter<
-    T, typename void_<typename is_fc_array<T>::enable>::type>
+    T, typename void_<typename is_handle<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::type>;
 };
@@ -345,7 +345,7 @@ struct GetAlignmentRequirement<T[], void>
 };
 template <class T>
 struct GetAlignmentRequirement<
-    T, typename void_<typename is_fc_array<T>::enable>::type>
+    T, typename void_<typename is_handle<T>::enable>::type>
 {
     static constexpr std::size_t value = alignof(typename T::type);
 };
@@ -560,7 +560,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             return;
         reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
             using U = base_type<decltype(u)>;
-            if constexpr (is_fc_array<U>::value)
+            if constexpr (is_handle<U>::value)
                 if constexpr (!std::is_trivially_destructible<
                                   typename U::type>::value)
                 {
