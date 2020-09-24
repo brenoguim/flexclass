@@ -8,6 +8,8 @@
 namespace fc
 {
 
+struct Default;
+
 constexpr std::size_t findNextAlignedPosition(std::size_t pos,
                                               std::size_t desiredAlignment)
 {
@@ -91,7 +93,13 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     static void build(void* buf, std::size_t& count, Arg1&& arg1,
                       Args&&... args)
     {
-        ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<Arg1>>,
+                          Default>)
+            ::new (obj(buf)) TheType;
+        else
+            ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
+
         count = id + 1;
 
         if constexpr (sizeof...(Tail) > 0)

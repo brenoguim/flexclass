@@ -420,5 +420,26 @@ TEST_CASE( "Support initialization of arrays" , "[basic]" )
 
     m = fc::FlexibleClass<int, int[]>::make_unique(10, fc::arg(10, v.begin()));
     CHECK( std::equal(m->begin<1>(), m->begin<1>() + 10, v.begin()) );
+}
 
+
+namespace
+{
+    struct IncrOnDefaultCtor
+    {
+        IncrOnDefaultCtor() {
+            cnt++;
+        }
+        static int cnt;
+    };
+    int IncrOnDefaultCtor::cnt = 0;
+
+    TEST_CASE( "Support default initialization (or no initialization for basic types)" , "[basic]" )
+    {
+        IncrOnDefaultCtor::cnt = 0;
+
+        auto m = fc::FlexibleClass<IncrOnDefaultCtor, IncrOnDefaultCtor>::make_unique(fc::Default{}, fc::Default{});
+
+        CHECK( IncrOnDefaultCtor::cnt == 2 );
+    }
 }

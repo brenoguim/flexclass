@@ -206,6 +206,7 @@ TODO: Add a description for this example
     - Instantiating a flexclass containing an undefined type
 - Check if available features are enough to replace code in LLVM (User/Uses classes)
 - Documentation - create a separate readme for the details
+    - Initialization options using fc::Default and fc::arg
     - Customization infrastructure
     - Overview of how the library works
     - Exception guarantees
