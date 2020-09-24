@@ -1,5 +1,5 @@
 # Flexclass
-A library for structures with flexible layout.
+A library for structures with flexible layout. See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
 
 ## Problem statement
 
@@ -183,14 +183,14 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
     using Impl = fc::FlexibleClass<std::atomic<unsigned>, unsigned, T[]>;
     ...
 ```
-[See the full example here](../master/tests/shared_array_example.test.cpp)
+[See the full example here](../master/tests/unit/shared_array_example.test.cpp)
 
 
 ### Variant Array
 
 TODO: Add a description for this example
 
-[See the full example here](../master/tests/variant_array_example.test.cpp)
+[See the full example here](../master/tests/unit/variant_array_example.test.cpp)
 
 
 ## TODO/Known issues
