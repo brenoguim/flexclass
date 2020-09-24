@@ -86,7 +86,7 @@ struct MyStruct : public fc::FlexibleBase<MyStruct, int, fc::Array<long>, std::s
 ```
 
 This allows the user to:
-- Access members using the enumeration as indices: `m->get<Age>()`, `m->begin<Data>()`, `m->get<std::string>()`
+- Access members using the enumeration as indices: `m->get<Age>()`, `m->begin<Data>()`, `m->get<Name>()`
 - Define custom member functions.
 
 
