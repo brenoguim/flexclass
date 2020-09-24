@@ -28,11 +28,10 @@
 #define FC_FLEXCLASS_CORE_HPP
 #ifndef FC_FLEXCLASS_TUPLE_HPP
 #define FC_FLEXCLASS_TUPLE_HPP
-#include <algorithm>
 #include <cstdint>
-#include <memory>
 namespace fc
 {
+struct Default;
 constexpr std::size_t findNextAlignedPosition(std::size_t pos,
                                               std::size_t desiredAlignment)
 {
@@ -104,7 +103,12 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     static void build(void* buf, std::size_t& count, Arg1&& arg1,
                       Args&&... args)
     {
-        ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<Arg1>>,
+                          Default>)
+            ::new (obj(buf)) TheType;
+        else
+            ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
         count = id + 1;
         if constexpr (sizeof...(Tail) > 0)
             Base::template build<id + 1>(buf, count,
@@ -213,23 +217,21 @@ auto& get_element(const tuple<T...>& t)
 }
 } // namespace fc
 #endif // FC_FLEXCLASS_TUPLE_HPP
-#include <algorithm>
 #include <cassert>
 #include <limits>
-#include <memory>
-#include <tuple>
 #include <type_traits>
 namespace fc
 {
-namespace handle
+template <class T>
+struct Handle
 {
-struct range
-{
+    template <class U>
+    Handle(U&&)
+    {
+    }
+    using fc_handle = T;
+    using type = T;
 };
-struct array
-{
-};
-} // namespace handle
 template <class T>
 void reverse_destroy(T* b, T* e)
 {
@@ -306,37 +308,72 @@ auto aligner(const T* t, std::size_t len)
 {
     return aligner_impl<T>{const_cast<T*>(t)}.advance(len);
 }
+struct Default
+{
+};
+template <class InputIt>
+struct Arg
+{
+    Arg(std::size_t size) : m_size(size) {}
+    Arg(std::size_t size, InputIt it) : m_size(size), m_it(it) {}
+    std::size_t m_size;
+    InputIt m_it;
+};
+auto arg(std::size_t size) { return Arg<Default>{size}; }
+template <class InputIt>
+auto arg(std::size_t size, InputIt it)
+{
+    return Arg<InputIt>{size, it};
+}
 template <class T>
 struct ArrayBuilder
 {
-    ArrayBuilder(std::size_t size) : m_size(size) {}
-    ArrayBuilder() = default;
     ~ArrayBuilder()
     {
-        if (m_ptr)
-            reverse_destroy(begin(), end());
+        if (m_begin)
+            reverse_destroy(m_begin, m_end);
     }
-    void consume(void*& buf, std::size_t& space)
+    void consume(void*& buf, std::size_t& space, std::size_t sz)
     {
-        auto ptr = std::align(alignof(T), numBytes(), buf, space);
+        consume(buf, space, Arg<Default>{sz});
+    }
+    template <class InputIt>
+    void consume(void*& buf, std::size_t& space, Arg<InputIt>&& arg)
+    {
+        consume(buf, space, arg);
+    }
+    template <class InputIt>
+    void consume(void*& buf, std::size_t& space, Arg<InputIt>& arg)
+    {
+        auto numBytes = arg.m_size * sizeof(T);
+        auto ptr = std::align(alignof(T), numBytes, buf, space);
         assert(ptr);
-        space -= numBytes();
-        buf = incr(buf, numBytes());
+        space -= numBytes;
+        buf = incr(buf, numBytes);
         auto b = static_cast<T*>(ptr);
-        auto e = b + m_size;
+        auto e = b + arg.m_size;
         ArrayDeleter<T> deleter(b);
-        while (b != e)
+        for (auto it = b; it != e;)
         {
-            new (b) T;
-            deleter.setEnd(++b);
+            if constexpr (std::is_same_v<InputIt, Default>)
+                new (it) T;
+            else
+                new (it) T(*arg.m_it++);
+            deleter.setEnd(++it);
         }
         deleter.release();
-        m_ptr = ptr;
+        m_begin = b;
+        m_end = e;
     }
-    template <class ArrayParameter>
-    std::size_t numRequiredBytes(std::size_t offset, ArrayParameter&& sz) const
+    static std::size_t numRequiredBytes(std::size_t offset, std::size_t sz)
     {
-        auto numBytes = sz * sizeof(T);
+        return numRequiredBytes(offset, Arg<Default>{sz});
+    }
+    template <class InputIt>
+    static std::size_t numRequiredBytes(std::size_t offset,
+                                        const Arg<InputIt>& arg)
+    {
+        auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
         auto originalSpace = space;
         void* ptr = static_cast<char*>(nullptr) + offset;
@@ -344,12 +381,9 @@ struct ArrayBuilder
         assert(r);
         return (originalSpace - space) + numBytes;
     }
-    auto numBytes() const { return m_size * sizeof(T); }
-    T* begin() const { return static_cast<T*>(m_ptr); }
-    T* end() const { return begin() + m_size; }
-    void release() { m_ptr = nullptr; }
-    std::size_t m_size;
-    void* m_ptr{nullptr};
+    void release() { m_begin = m_end = nullptr; }
+    T* m_begin{nullptr};
+    T* m_end{nullptr};
 };
 template <class T>
 struct ArraySelector
@@ -388,18 +422,18 @@ struct Ignore
     }
 };
 template <class T, class = void>
-struct PreImplConverter
+struct ArrayBuildersConverter
 {
     using type = Ignore;
 };
 template <class T>
-struct PreImplConverter<T[], void>
+struct ArrayBuildersConverter<T[], void>
 {
     using type = ArrayBuilder<T>;
 };
 template <class T>
-struct PreImplConverter<T,
-                        typename void_<typename is_fc_array<T>::enable>::type>
+struct ArrayBuildersConverter<
+    T, typename void_<typename is_fc_array<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::type>;
 };
@@ -499,6 +533,39 @@ struct DeleteFn
     }
     bool typeCreated{false};
 };
+template <class T, class Deleter>
+struct unique_ptr : private Deleter
+{
+    explicit unique_ptr(T* t) : m_t(t) {}
+    unique_ptr(const unique_ptr&) = delete;
+    unique_ptr(unique_ptr&& other)
+        : Deleter(std::move(other.get_deleter())),
+          m_t(std::exchange(other.m_t, nullptr))
+    {
+    }
+    unique_ptr& operator=(const unique_ptr&) = delete;
+    unique_ptr& operator=(unique_ptr&& other)
+    {
+        using std::swap;
+        swap(get_deleter(), other.get_deleter());
+        swap(m_t, other.m_t);
+        return *this;
+    }
+    ~unique_ptr()
+    {
+        if (m_t)
+            get_deleter()(m_t);
+    }
+    void release() { m_t = nullptr; }
+    Deleter& get_deleter() { return *this; }
+    T* operator->() { return m_t; }
+    T* operator->() const { return m_t; }
+    T* get() { return m_t; }
+    T* get() const { return m_t; }
+    T* m_t;
+};
+template <class T>
+using base_type = std::remove_cv_t<std::remove_reference_t<T>>;
 template <class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase
     : public fc::tuple<typename ArraySelector<T>::type...>
@@ -545,7 +612,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         void operator()(Derived* ptr) const { Derived::destroy(ptr); }
     };
-    using UniquePtr = std::unique_ptr<Derived, DestroyFn>;
+    using UniquePtr = unique_ptr<Derived, DestroyFn>;
     template <class... Args>
     static auto make_unique(Args&&... args)
     {
@@ -554,37 +621,42 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     template <class... Args>
     static auto make(Args&&... args)
     {
-        using PreImpl = fc::tuple<typename PreImplConverter<T>::type...>;
+        using ArrayBuilders =
+            fc::tuple<typename ArrayBuildersConverter<T>::type...>;
         std::size_t numBytesForArrays = 0;
         {
             for_each_in_tuple(
-                PreImpl(), [&]<class U, class Idx>(const U& u,
-                                                   Idx idx) mutable {
+                ArrayBuilders(), [&](const auto& u, auto idx) mutable {
+                    using U = base_type<decltype(u)>;
+                    using Idx = decltype(idx);
                     if constexpr (is_array_placeholder<U>::value)
                         numBytesForArrays += u.numRequiredBytes(
                             sizeof(Derived) + numBytesForArrays,
                             detail::pickFromPack<Idx::value>(args...));
                 });
         }
-        auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
+        auto implBuffer = unique_ptr<void, DeleteFn<Derived>>(
             ::operator new(sizeof(Derived) + numBytesForArrays));
-        PreImpl pi(args...);
+        ArrayBuilders pi;
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
         implBuffer.get_deleter().typeCreated = true;
         void* arrayBuffer = ret + 1;
-        for_each_in_tuple(
-            pi, [&]<class U>(U & u, auto idx) mutable {
-                if constexpr (is_array_placeholder<U>::value)
-                    u.consume(arrayBuffer, numBytesForArrays);
-            });
-        for_each_zipped<sizeof...(T)>(
-            *ret, pi, []<class U, class K>(U & u, K & k) {
-                if constexpr (is_array_placeholder<K>::value)
-                {
-                    u.setLocation(k.begin(), k.end());
-                    k.release();
-                }
-            });
+        for_each_in_tuple(pi, [&](auto& u, auto idx) mutable {
+            using U = base_type<decltype(u)>;
+            using Idx = decltype(idx);
+            if constexpr (is_array_placeholder<U>::value)
+                u.consume(arrayBuffer, numBytesForArrays,
+                          detail::pickFromPack<Idx::value>(
+                              std::forward<Args>(args)...));
+        });
+        for_each_zipped<sizeof...(T)>(*ret, pi, [](auto& u, auto& k) {
+            using K = base_type<decltype(k)>;
+            if constexpr (is_array_placeholder<K>::value)
+            {
+                u.setLocation(k.m_begin, k.m_end);
+                k.release();
+            }
+        });
         implBuffer.release();
         return ret;
     }
@@ -592,15 +664,15 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         if (!p)
             return;
-        reverse_for_each_in_tuple(
-            *p, [p]<class U>(U & u, auto idx) {
-                if constexpr (is_fc_array<std::remove_cv_t<U>>::value)
-                    if constexpr (!std::is_trivially_destructible<
-                                      typename U::type>::value)
-                    {
-                        reverse_destroy(u.begin(p), u.end(p));
-                    }
-            });
+        reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
+            using U = base_type<decltype(u)>;
+            if constexpr (is_fc_array<U>::value)
+                if constexpr (!std::is_trivially_destructible<
+                                  typename U::type>::value)
+                {
+                    reverse_destroy(u.begin(p), u.end(p));
+                }
+        });
         p->~Derived();
         ::operator delete(const_cast<Derived*>(p));
     }
@@ -620,15 +692,10 @@ struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
 namespace fc
 {
 template <class T>
-struct Array
+struct Array : Handle<T>
 {
-    template <class U>
-    Array(U&&)
-    {
-    }
+    using Handle<T>::Handle;
     void setLocation(T* begin, T* end) { m_begin = begin; }
-    using type = T;
-    using fc_handle = handle::array;
     template <class Derived>
     auto begin(const Derived* ptr) const
     {
@@ -638,19 +705,14 @@ struct Array
     T* m_begin;
 };
 template <class T>
-struct Range
+struct Range : Handle<T>
 {
-    template <class U>
-    Range(U&&)
-    {
-    }
+    using Handle<T>::Handle;
     void setLocation(T* begin, T* end)
     {
         m_begin = begin;
         m_end = end;
     }
-    using type = T;
-    using fc_handle = handle::range;
     template <class Derived>
     auto begin(const Derived* ptr) const
     {
@@ -667,15 +729,10 @@ struct Range
     T* m_end;
 };
 template <class T, int El = -1>
-struct AdjacentArray
+struct AdjacentArray : Handle<T>
 {
-    template <class U>
-    AdjacentArray(U&&)
-    {
-    }
+    using Handle<T>::Handle;
     void setLocation(T* begin, T* end) {}
-    using type = T;
-    using fc_handle = handle::array;
     template <class Derived>
     auto begin(const Derived* ptr) const
     {
@@ -686,15 +743,10 @@ struct AdjacentArray
     }
 };
 template <class T, int El = -1>
-struct AdjacentRange
+struct AdjacentRange : Handle<T>
 {
-    template <class U>
-    AdjacentRange(U&&)
-    {
-    }
+    using Handle<T>::Handle;
     void setLocation(T* begin, T* end) { m_end = end; }
-    using type = T;
-    using fc_handle = handle::range;
     template <class Derived>
     auto begin(const Derived* ptr) const
     {
