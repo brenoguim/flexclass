@@ -147,7 +147,7 @@ struct ArrayBuilder
         m_end = e;
     }
 
-    std::size_t numRequiredBytes(std::size_t offset, const Arg& arg) const
+    static std::size_t numRequiredBytes(std::size_t offset, const Arg& arg)
     {
         auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
