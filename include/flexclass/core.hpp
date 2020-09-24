@@ -109,43 +109,47 @@ auto aligner(const T* t, std::size_t len)
     return aligner_impl<T>{const_cast<T*>(t)}.advance(len);
 }
 
+struct Arg
+{
+    Arg(std::size_t size) : m_size(size) {}
+    std::size_t m_size;
+};
+
 template <class T>
 struct ArrayBuilder
 {
-    ArrayBuilder(std::size_t size) : m_size(size) {}
-
-    ArrayBuilder() = default;
-
     ~ArrayBuilder()
     {
-        if (m_ptr)
-            reverse_destroy(begin(), end());
+        if (m_begin)
+            reverse_destroy(m_begin, m_end);
     }
 
-    void consume(void*& buf, std::size_t& space)
+    void consume(void*& buf, std::size_t& space, const Arg& arg)
     {
-        auto ptr = std::align(alignof(T), numBytes(), buf, space);
+        auto numBytes = arg.m_size * sizeof(T);
+        auto ptr = std::align(alignof(T), numBytes, buf, space);
         assert(ptr);
-        space -= numBytes();
-        buf = incr(buf, numBytes());
+        space -= numBytes;
+        buf = incr(buf, numBytes);
 
         auto b = static_cast<T*>(ptr);
-        auto e = b + m_size;
+        auto e = b + arg.m_size;
 
         ArrayDeleter<T> deleter(b);
-        while (b != e)
+        for (auto it = b; it != e;)
         {
-            new (b) T;
-            deleter.setEnd(++b);
+            new (it) T;
+            deleter.setEnd(++it);
         }
         deleter.release();
-        m_ptr = ptr;
+
+        m_begin = b;
+        m_end = e;
     }
 
-    template <class ArrayParameter>
-    std::size_t numRequiredBytes(std::size_t offset, ArrayParameter&& sz) const
+    std::size_t numRequiredBytes(std::size_t offset, const Arg& arg) const
     {
-        auto numBytes = sz * sizeof(T);
+        auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
         auto originalSpace = space;
         void* ptr = static_cast<char*>(nullptr) + offset;
@@ -154,13 +158,10 @@ struct ArrayBuilder
         return (originalSpace - space) + numBytes;
     }
 
-    auto numBytes() const { return m_size * sizeof(T); }
-    T* begin() const { return static_cast<T*>(m_ptr); }
-    T* end() const { return begin() + m_size; }
-    void release() { m_ptr = nullptr; }
+    void release() { m_begin = m_end = nullptr; }
 
-    std::size_t m_size;
-    void* m_ptr{nullptr};
+    T* m_begin{nullptr};
+    T* m_end{nullptr};
 };
 
 template <class T>
@@ -415,7 +416,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
         auto implBuffer = std::unique_ptr<void, DeleteFn<Derived>>(
             ::operator new(sizeof(Derived) + numBytesForArrays));
 
-        ArrayBuilders pi(args...);
+        ArrayBuilders pi;
 
         auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
         implBuffer.get_deleter().typeCreated = true;
@@ -425,14 +426,16 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             using U = base_type<decltype(u)>;
             using Idx = decltype(idx);
             if constexpr (is_array_placeholder<U>::value)
-                u.consume(arrayBuffer, numBytesForArrays);
+                u.consume(arrayBuffer, numBytesForArrays,
+                          detail::pickFromPack<Idx::value>(
+                              std::forward<Args>(args)...));
         });
 
         for_each_zipped<sizeof...(T)>(*ret, pi, [](auto& u, auto& k) {
             using K = base_type<decltype(k)>;
             if constexpr (is_array_placeholder<K>::value)
             {
-                u.setLocation(k.begin(), k.end());
+                u.setLocation(k.m_begin, k.m_end);
                 k.release();
             }
         });
