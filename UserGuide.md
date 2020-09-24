@@ -73,6 +73,24 @@ m->end<1>()    -> returns a pointer to the end of the long array
 m->get<2>()    -> returns a std::string&
 ```
 
+It is recomended to use a namespace to tie names to each index:
+```
+namespace Message
+{
+    enum Members { Name, Age, Data };
+    using Type = fc::FlexibleBase<std::string, int, Foo[]>;
+}
+
+...
+
+auto name      = m->get<Message::Name>();
+auto age       = m->get<Message::Age>();
+auto dataBegin = m->->begin<Message::Data>();
+```
+
+Another alternative is to use a `FlexibleBase`.
+
+
 ## FlexibleBase
 
 As noticed from the previous example, accessing elements via numbers can be hard to read. A solution is to use a `FlexibleBase` with an enumeration:
@@ -101,14 +119,14 @@ There are two types of handles:
 Available handles are:
 - `fc::Array<T>`: Contains one `T*` to indicate the begin of the object sequence
 - `fc::Range<T>`: Contains two `T*` to indicate both begin and end
-- `fc::AdjacentArray<T, int Idx = -1>`: Contains no data as it assumes the begin of its array is after end of the array from handle in `Idx`
+- `fc::AdjacentArray<T, int Idx = -1>`: Contains no data as it assumes its array is adjacent to the data from handle in `Idx`
     - If `Idx` is `-1`, it assumes the begin of its array is after the Base
 - `fc::AdjacentRange<T, int Idx = -1>`: Like `fc::AdjacentArray<T>` but contains a `T*` to also know the end of the object sequence
 - `T[]`: Automatically converted into a `fc::Array<T>` in case `T` is trivially-destructible, and `fc::Range<T>` otherwise
 
 # Custom handles
 
-The handles being provided with the library use the framework to implement custom handles.
+Handles being provided with the library use the framework to implement custom handles.
 Here is a customization example of a handle that assumes that the data is very close to the base and is very small:
 
 ```
