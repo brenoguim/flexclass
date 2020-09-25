@@ -4,6 +4,7 @@
 #include "algorithm.hpp"
 #include "memory.hpp"
 #include "tuple.hpp"
+#include "utility.hpp"
 
 #include <cassert>
 #include <limits>
@@ -176,18 +177,6 @@ struct ArrayBuildersConverter<
     using type = ArrayBuilder<typename T::type>;
 };
 
-namespace detail
-{
-template <std::size_t Idx, class Arg1, class... Args>
-decltype(auto) pickFromPack(Arg1&& arg1, Args&&... args)
-{
-    if constexpr (Idx == 0)
-        return std::forward<Arg1>(arg1);
-    else
-        return pickFromPack<Idx - 1>(std::forward<Args>(args)...);
-}
-} // namespace detail
-
 template <class T, class = void>
 struct GetAlignmentRequirement
 {
@@ -317,15 +306,15 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
 
         std::size_t numBytesForArrays = 0;
         {
-            for_each_in_tuple(
-                ArrayBuilders(), [&](const auto& u, auto idx) mutable {
-                    using U = base_type<decltype(u)>;
-                    using Idx = decltype(idx);
-                    if constexpr (is_array_placeholder<U>::value)
-                        numBytesForArrays += u.numRequiredBytes(
-                            sizeof(Derived) + numBytesForArrays,
-                            detail::pickFromPack<Idx::value>(args...));
-                });
+            for_each_in_tuple(ArrayBuilders(), [&](const auto& u,
+                                                   auto idx) mutable {
+                using U = base_type<decltype(u)>;
+                using Idx = decltype(idx);
+                if constexpr (is_array_placeholder<U>::value)
+                    numBytesForArrays +=
+                        u.numRequiredBytes(sizeof(Derived) + numBytesForArrays,
+                                           pickFromPack<Idx::value>(args...));
+            });
         }
 
         auto implBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
@@ -341,9 +330,9 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             using U = base_type<decltype(u)>;
             using Idx = decltype(idx);
             if constexpr (is_array_placeholder<U>::value)
-                u.consume(arrayBuffer, numBytesForArrays,
-                          detail::pickFromPack<Idx::value>(
-                              std::forward<Args>(args)...));
+                u.consume(
+                    arrayBuffer, numBytesForArrays,
+                    pickFromPack<Idx::value>(std::forward<Args>(args)...));
         });
 
         for_each_zipped<sizeof...(T)>(*ret, pi, [](auto& u, auto& k) {

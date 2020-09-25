@@ -6,5 +6,6 @@
 #include "core.hpp"
 #include "memory.hpp"
 #include "tuple.hpp"
+#include "utility.hpp"
 
 #endif // FC_FLEXCLASS_FLEXCLASS_HPP
