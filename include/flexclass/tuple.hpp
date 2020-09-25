@@ -221,6 +221,71 @@ auto& get_element(const tuple<T...>& t)
     return t.template get<i>();
 }
 
+namespace detail
+{
+
+template <int Idx, class T, class Fn>
+void callWithIdx(const T& t, Fn&& f)
+{
+    f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+}
+
+template <int Idx, class T, class Fn>
+void callWithIdx(T& t, Fn&& f)
+{
+    f(get_element<Idx>(t), std::integral_constant<int, Idx>());
+}
+
+template <typename T, typename F, int... Is>
+void for_each(T&& t, F&& f, std::integer_sequence<int, Is...>)
+{
+    if constexpr (std::remove_reference_t<T>::Size > 0)
+        auto l = {(callWithIdx<Is>(t, f), 0)...};
+}
+
+template <int I, int N, typename T1, typename T2, typename F>
+void for_each_zipped(T1&& t1, T2&& t2, F&& f)
+{
+    if constexpr (I != N)
+    {
+        f(get_element<I>(t1), get_element<I>(t2));
+        for_each_zipped<I + 1, N, T1, T2, F>(t1, t2, f);
+    }
+}
+} // namespace detail
+
+template <typename... Ts, typename F>
+void for_each_in_tuple(fc::tuple<Ts...>& t, F&& f)
+{
+    detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
+}
+
+template <int... Is>
+constexpr auto reverseIntegerSequence(std::integer_sequence<int, Is...> const&)
+{
+    return std::integer_sequence<int, sizeof...(Is) - 1 - Is...>{};
+}
+
+template <typename... Ts, typename F>
+void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
+{
+    detail::for_each(t, f,
+                     reverseIntegerSequence(
+                         std::make_integer_sequence<int, sizeof...(Ts)>()));
+}
+
+template <typename... Ts, typename F>
+void for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
+{
+    detail::for_each(t, f, std::make_integer_sequence<int, sizeof...(Ts)>());
+}
+
+template <int I, typename T1, typename T2, typename F>
+void for_each_zipped(T1& t1, T2& t2, F f)
+{
+    detail::for_each_zipped<0, I>(t1, t2, f);
+}
+
 } // namespace fc
 
 #endif // FC_FLEXCLASS_TUPLE_HPP
