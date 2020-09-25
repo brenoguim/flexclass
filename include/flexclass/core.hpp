@@ -32,10 +32,8 @@ struct Handle
     Handle(U&&)
     {
     }
-    //! If fc_handle is defined, then this is handle
-    using fc_handle = T;
-    // TODO Remove type and use fc_handle instead
-    using type = T;
+    //! If fc_handle_type is defined, then this is handle
+    using fc_handle_type = T;
 };
 
 /*! Placeholder type to indicate to the library that
@@ -219,7 +217,8 @@ struct isHandle : std::false_type
 
 // Helper trait. TODO: move to utility.hpp
 template <class T>
-struct isHandle<T, typename void_<typename T::fc_handle>::type> : std::true_type
+struct isHandle<T, typename void_<typename T::fc_handle_type>::type>
+    : std::true_type
 {
     using enable = T;
 };
@@ -256,7 +255,7 @@ template <class T>
 struct ArrayBuildersConverter<
     T, typename void_<typename isHandle<T>::enable>::type>
 {
-    using type = ArrayBuilder<typename T::type>;
+    using type = ArrayBuilder<typename T::fc_handle_type>;
 };
 
 /*! Finds handle types in the types passed by the user
@@ -280,7 +279,7 @@ template <class T>
 struct GetAlignmentRequirement<
     T, typename void_<typename isHandle<T>::enable>::type>
 {
-    static constexpr std::size_t value = alignof(typename T::type);
+    static constexpr std::size_t value = alignof(typename T::fc_handle_type);
 };
 
 template <class... Types>
@@ -472,7 +471,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             using U = remove_cvref_t<decltype(u)>;
             if constexpr (isHandle<U>::value)
                 if constexpr (!std::is_trivially_destructible<
-                                  typename U::type>::value)
+                                  typename U::fc_handle_type>::value)
                 {
                     reverseDestroy(u.begin(p), u.end(p));
                 }
