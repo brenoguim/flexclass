@@ -55,7 +55,7 @@ struct ArrayBuilder
     ~ArrayBuilder()
     {
         if (m_begin)
-            reverse_destroy(m_begin, m_end);
+            reverseDestroy(m_begin, m_end);
     }
 
     void consume(void*& buf, std::size_t& space, std::size_t sz)
@@ -380,7 +380,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
                 if constexpr (!std::is_trivially_destructible<
                                   typename U::type>::value)
                 {
-                    reverse_destroy(u.begin(p), u.end(p));
+                    reverseDestroy(u.begin(p), u.end(p));
                 }
         });
         p->~Derived();

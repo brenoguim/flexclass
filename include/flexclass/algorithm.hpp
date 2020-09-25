@@ -1,22 +1,22 @@
-#ifndef FLEXCLASS_ALGORITHM_HPP
-#define FLEXCLASS_ALGORITHM_HPP
+#ifndef FC_FLEXCLASS_ALGORITHM_HPP
+#define FC_FLEXCLASS_ALGORITHM_HPP
 
 namespace fc
 {
+
+/*! Calls the destructor on all elements in the range
+ *     from "begin" up to "end" in reverse order
+ */
 template <class T>
-void reverse_destroy(T* b, T* e)
+void reverseDestroy(T* begin, T* end)
 {
-    if (b != e)
+    while (begin != end)
     {
-        while (1)
-        {
-            e--;
-            e->~T();
-            if (e == b)
-                break;
-        }
+        end--;
+        end->~T();
     }
 }
+
 } // namespace fc
 
 #endif
