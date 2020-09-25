@@ -13,8 +13,7 @@ struct Default
 {
 };
 
-constexpr std::size_t findNextAlignedPosition(std::size_t pos,
-                                              std::size_t desiredAlignment)
+constexpr std::size_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment)
 {
     return (pos - 1u + desiredAlignment) & -desiredAlignment;
 }
@@ -33,8 +32,7 @@ template <class A, class B>
 using concat = typename concat_i<A, B>::type;
 
 template <class... T>
-static constexpr std::size_t maxAlign = std::max({std::size_t(1),
-                                                  alignof(T)...});
+static constexpr std::size_t maxAlign = std::max({std::size_t(1), alignof(T)...});
 
 template <class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
@@ -51,8 +49,7 @@ struct Item
 template <std::size_t Pos, class Head, class... Tail>
 struct InsertPadding<Pos, List<Head, Tail...>>
 {
-    static constexpr auto RoundedPos =
-        findNextAlignedPosition(Pos, alignof(Head));
+    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
     using SubType = InsertPadding<RoundedPos + CSizeOf<Head>, List<Tail...>>;
 
     using type = concat<List<Item<RoundedPos, Head>>, typename SubType::type>;
@@ -64,8 +61,7 @@ struct InsertPadding<Pos, List<Head, Tail...>>
 template <std::size_t Pos, class Head>
 struct InsertPadding<Pos, List<Head>>
 {
-    static constexpr auto RoundedPos =
-        findNextAlignedPosition(Pos, alignof(Head));
+    static constexpr auto RoundedPos = findNextAlignedPosition(Pos, alignof(Head));
     using type = List<Item<RoundedPos, Head>>;
     static constexpr auto NumBytes = RoundedPos + CSizeOf<Head>;
     static constexpr auto Alignment = alignof(Head);
@@ -93,12 +89,9 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     using TheType = typename Head::type;
 
     template <std::size_t id, class Arg1, class... Args>
-    static void build(void* buf, std::size_t& count, Arg1&& arg1,
-                      Args&&... args)
+    static void build(void* buf, std::size_t& count, Arg1&& arg1, Args&&... args)
     {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<Arg1>>,
-                          Default>)
+        if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<Arg1>>, Default>)
             ::new (obj(buf)) TheType;
         else
             ::new (obj(buf)) TheType(std::forward<Arg1>(arg1));
@@ -106,8 +99,7 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
         count = id + 1;
 
         if constexpr (sizeof...(Tail) > 0)
-            Base::template build<id + 1>(buf, count,
-                                         std::forward<Args>(args)...);
+            Base::template build<id + 1>(buf, count, std::forward<Args>(args)...);
     }
 
     template <std::size_t id>
@@ -141,8 +133,7 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
 
     static auto obj(void* buf)
     {
-        return static_cast<TheType*>(
-            static_cast<void*>(static_cast<std::byte*>(buf) + Head::pos));
+        return static_cast<TheType*>(static_cast<void*>(static_cast<std::byte*>(buf) + Head::pos));
     }
 };
 
@@ -166,8 +157,7 @@ struct tuple
             std::size_t count = 0;
             try
             {
-                TP::template build<0>(&m_data, count,
-                                      std::forward<Args>(args)...);
+                TP::template build<0>(&m_data, count, std::forward<Args>(args)...);
             }
             catch (...)
             {
@@ -275,8 +265,7 @@ template <typename... Ts, typename F>
 void reverse_for_each_in_tuple(const fc::tuple<Ts...>& t, F&& f)
 {
     detail::for_each(t, f,
-                     reverseIntegerSequence(
-                         std::make_integer_sequence<int, sizeof...(Ts)>()));
+                     reverseIntegerSequence(std::make_integer_sequence<int, sizeof...(Ts)>()));
 }
 
 template <typename... Ts, typename F>

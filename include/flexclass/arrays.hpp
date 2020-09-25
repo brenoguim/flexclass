@@ -157,8 +157,7 @@ struct AdjacentRange : Handle<T>
 template <class T>
 struct ArraySelector<T[]>
 {
-    using type = std::conditional_t<std::is_trivially_destructible<T>::value,
-                                    Array<T>, Range<T>>;
+    using type = std::conditional_t<std::is_trivially_destructible<T>::value, Array<T>, Range<T>>;
 };
 
 } // namespace fc
