@@ -7,7 +7,6 @@
 #include "utility.hpp"
 
 #include <cassert>
-#include <limits>
 #include <type_traits>
 
 namespace fc
@@ -103,25 +102,24 @@ struct ArrayBuilder
     }
 
     //! Creates the array of size "sz" in the given buffer.
-    void buildArray(void*& buf, std::size_t sz) { buildArray(buf, Arg<detail::NoIterator>{sz}); }
-
-    //! Creates the array with inputs specified by Arg in the given buffer.
-    template <class InputIt>
-    void buildArray(void*& buf, Arg<InputIt>&& arg)
+    auto buildArray(std::byte* buf, std::size_t sz)
     {
-        buildArray(buf, arg);
+        return buildArray(buf, Arg<detail::NoIterator>{sz});
     }
 
     //! Creates the array with inputs specified by Arg in the given buffer.
     template <class InputIt>
-    void buildArray(void*& buf, Arg<InputIt>& arg)
+    auto buildArray(std::byte* buf, Arg<InputIt>&& arg)
+    {
+        return buildArray(buf, arg);
+    }
+
+    //! Creates the array with inputs specified by Arg in the given buffer.
+    template <class InputIt>
+    auto buildArray(std::byte* buf, Arg<InputIt>& arg)
     {
         // Find the fist aligned byte suitable for creating T objects
-        auto numBytes = arg.m_size * sizeof(T);
-        auto ptr = (void*)findNextAlignedPosition(buf, alignof(T), 1);
-        buf = incr(ptr, numBytes);
-
-        auto b = static_cast<T*>(ptr);
+        auto b = aligner(buf).get<T>();
         auto e = b + arg.m_size;
 
         // In case of an exception, ArrayDeleter will make sure
@@ -144,6 +142,8 @@ struct ArrayBuilder
         deleter.release();
         m_begin = b;
         m_end = e;
+
+        return reinterpret_cast<std::byte*>(e);
     }
 
     //! Query for the number of bytes necessary to create an T array of size
@@ -357,15 +357,17 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
         memBuffer.get_deleter().m_objectCreated = true;
 
         // Start creating arrays right after the Derived object
-        void* arrayBuffer = ret + 1;
+        std::byte* arrayBuffer = reinterpret_cast<std::byte*>(ret + 1);
 
         ArrayBuilders arrayBuilders;
         for_each_in_tuple(arrayBuilders, [&](auto& element, auto idx) mutable {
             using Element = remove_cvref_t<decltype(element)>;
             using Idx = decltype(idx);
             if constexpr (isArrayBuilder<Element>::value)
-                element.buildArray(arrayBuffer,
-                                   pickFromPack<Idx::value>(std::forward<Args>(args)...));
+            {
+                arrayBuffer = element.buildArray(
+                    arrayBuffer, pickFromPack<Idx::value>(std::forward<Args>(args)...));
+            }
         });
 
         for_each_zipped<sizeof...(T)>(*ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {

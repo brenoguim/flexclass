@@ -24,8 +24,6 @@ struct ArrayDeleter
     T *m_begin{nullptr}, *m_end{nullptr};
 };
 
-inline void* incr(void* in, std::size_t len) { return static_cast<std::byte*>(in) + len; }
-
 constexpr std::uintptr_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment,
                                                  std::size_t currentAlignment = 1)
 {
