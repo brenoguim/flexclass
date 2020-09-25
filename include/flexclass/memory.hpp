@@ -1,5 +1,9 @@
 #ifndef FLEXCLASS_MEMORY_HPP
 #define FLEXCLASS_MEMORY_HPP
+
+#include <cstdint>
+#include <utility>
+
 namespace fc
 {
 

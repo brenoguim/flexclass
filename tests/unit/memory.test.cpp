@@ -4,6 +4,7 @@
 #include <flexclass.hpp>
 
 #include <cstring>
+#include <string>
 
 TEST_CASE( "Allocate and destroy", "[memory]" )
 {

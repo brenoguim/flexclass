@@ -3,6 +3,7 @@
 
 #include "memory.hpp"
 
+#include <cstddef>
 #include <cstdint>
 
 namespace fc
@@ -28,8 +29,22 @@ struct concat_i<List<A...>, List<B...>>
 template <class A, class B>
 using concat = typename concat_i<A, B>::type;
 
+template <class... Types>
+struct MaxAlign;
+template <>
+struct MaxAlign<>
+{
+    static constexpr auto value = 1;
+};
+template <class First, class... Types>
+struct MaxAlign<First, Types...>
+{
+    static constexpr auto tailAlignment = MaxAlign<Types...>::value;
+    static constexpr auto value = alignof(First) > tailAlignment ? alignof(First) : tailAlignment;
+};
+
 template <class... T>
-static constexpr std::size_t maxAlign = std::max({std::size_t(1), alignof(T)...});
+static constexpr std::size_t maxAlign = MaxAlign<T...>::value;
 
 template <class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);

@@ -7,6 +7,7 @@
 #include "utility.hpp"
 
 #include <cassert>
+#include <new>
 #include <type_traits>
 
 namespace fc
@@ -249,10 +250,19 @@ struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::
 };
 
 template <class... Types>
-struct CollectAlignment
+struct CollectAlignment;
+template <>
+struct CollectAlignment<>
 {
-    static constexpr auto value =
-        std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
+    static constexpr auto value = 1;
+};
+template <class First, class... Types>
+struct CollectAlignment<First, Types...>
+{
+    static constexpr auto tailAlignment = CollectAlignment<Types...>::value;
+    static constexpr auto value = GetAlignmentRequirement<First>::value > tailAlignment
+                                      ? GetAlignmentRequirement<First>::value
+                                      : tailAlignment;
 };
 
 template <class Derived, class... T>
