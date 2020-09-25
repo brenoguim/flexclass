@@ -24,6 +24,7 @@
 #define FC_FLEXCLASS_FLEXCLASS_HPP
 #ifndef FC_FLEXCLASS_ALGORITHM_HPP
 #define FC_FLEXCLASS_ALGORITHM_HPP
+#include <initializer_list>
 namespace fc
 {
 /*! Calls the destructor on all elements in the range
@@ -37,6 +38,36 @@ void reverseDestroy(T* begin, T* end)
         end--;
         end->~T();
     }
+}
+/*! Roll our own "std::max_element" with the "naive"
+ * in the name to be clear that this is a custom implementation
+ *
+ * This was done to avoid including the <algorithm> header which
+ * is very heavy
+ */
+template <class It>
+constexpr It naiveMaxElement(It begin, It end)
+{
+    It max = end;
+    It it = end;
+    while (it != begin)
+    {
+        --it;
+        if (max == end || *max < *it)
+            max = it;
+    }
+    return max;
+}
+/*! Roll our own "std::mad" with the "naive"
+ * in the name to be clear that this is a custom implementation
+ *
+ * This was done to avoid including the <algorithm> header which
+ * is very heavy
+ */
+template <class T>
+constexpr auto naiveMax(std::initializer_list<T> list)
+{
+    return *naiveMaxElement(list.begin(), list.end());
 }
 } // namespace fc
 #endif
@@ -200,21 +231,8 @@ struct concat_i<List<A...>, List<B...>>
 };
 template <class A, class B>
 using concat = typename concat_i<A, B>::type;
-template <class... Types>
-struct MaxAlign;
-template <>
-struct MaxAlign<>
-{
-    static constexpr auto value = 1;
-};
-template <class First, class... Types>
-struct MaxAlign<First, Types...>
-{
-    static constexpr auto tailAlignment = MaxAlign<Types...>::value;
-    static constexpr auto value = alignof(First) > tailAlignment ? alignof(First) : tailAlignment;
-};
 template <class... T>
-static constexpr std::size_t maxAlign = MaxAlign<T...>::value;
+static constexpr std::size_t maxAlign = naiveMax({alignof(T)...});
 template <class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
 template <std::size_t Pos, class List>
@@ -674,19 +692,10 @@ struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::
     static constexpr std::size_t value = alignof(typename T::fc_handle_type);
 };
 template <class... Types>
-struct CollectAlignment;
-template <>
-struct CollectAlignment<>
+struct CollectAlignment
 {
-    static constexpr auto value = 1;
-};
-template <class First, class... Types>
-struct CollectAlignment<First, Types...>
-{
-    static constexpr auto tailAlignment = CollectAlignment<Types...>::value;
-    static constexpr auto value = GetAlignmentRequirement<First>::value > tailAlignment
-                                      ? GetAlignmentRequirement<First>::value
-                                      : tailAlignment;
+    static constexpr auto value =
+        naiveMax({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 template <class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase
