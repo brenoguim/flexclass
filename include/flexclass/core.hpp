@@ -36,23 +36,19 @@ struct Handle
     using fc_handle_type = T;
 };
 
-/*! Placeholder type to indicate to the library that
- *  a type should just get default initialization
- *
- * TODO: this is also used internally to indicate no
- * iterator was passed for the array construction
- * Use another type for that, and move this type
- * to tuple.hpp
- */
-struct Default
+namespace detail
+{
+//! Placeholder to indicate no iterator was passed by the user
+struct NoIterator
 {
 };
+} // namespace detail
 
 /*! internal
  * Class used to store the arguments for an array creation
  * It stores both the array size and an inputiterator that
  * will provide the initial values for the elements
- * If the iterator is the "fc::Default" class, then elements
+ * If the iterator is the "fc::detail::NoIterator" class, then elements
  * are default initialized
  */
 template <class InputIt>
@@ -65,7 +61,7 @@ struct Arg
 };
 
 //! Use this as argument for creating an array
-auto arg(std::size_t size) { return Arg<Default>{size}; }
+auto arg(std::size_t size) { return Arg<detail::NoIterator>{size}; }
 
 //! Use this as argument for creating an array with an initial value
 //  The input iterator will be called for each element
@@ -109,7 +105,7 @@ struct ArrayBuilder
     //! Creates the array of size "sz" in the given buffer.
     void consume(void*& buf, std::size_t& space, std::size_t sz)
     {
-        consume(buf, space, Arg<Default>{sz});
+        consume(buf, space, Arg<detail::NoIterator>{sz});
     }
 
     //! Creates the array with inputs specified by Arg in the given buffer.
@@ -140,7 +136,7 @@ struct ArrayBuilder
         for (auto it = b; it != e;)
         {
             // Special handling for default initialization
-            if constexpr (std::is_same_v<InputIt, Default>)
+            if constexpr (std::is_same_v<InputIt, detail::NoIterator>)
                 new (it) T;
             else
                 new (it) T(*arg.m_it++);
@@ -160,7 +156,7 @@ struct ArrayBuilder
     // "offset" is the offset in an imaginary array starting from 0
     static std::size_t numRequiredBytes(std::size_t offset, std::size_t sz)
     {
-        return numRequiredBytes(offset, Arg<Default>{sz});
+        return numRequiredBytes(offset, Arg<detail::NoIterator>{sz});
     }
 
     //! Query for the number of bytes necessary to create an T array of size
