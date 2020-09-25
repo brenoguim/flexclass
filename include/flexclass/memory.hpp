@@ -26,15 +26,18 @@ struct ArrayDeleter
 
 inline void* incr(void* in, std::size_t len) { return static_cast<std::byte*>(in) + len; }
 
-constexpr std::uintptr_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment, std::size_t currentAlignment = 1)
+constexpr std::uintptr_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment,
+                                                 std::size_t currentAlignment = 1)
 {
     return (pos - 1u + desiredAlignment) & -desiredAlignment;
 }
 
-template<class T>
-constexpr std::uintptr_t findNextAlignedPosition(T* ptr, std::size_t desiredAlignment, std::size_t currentAlignment = alignof(T))
+template <class T>
+constexpr std::uintptr_t findNextAlignedPosition(T* ptr, std::size_t desiredAlignment,
+                                                 std::size_t currentAlignment = alignof(T))
 {
-    return findNextAlignedPosition(static_cast<std::uintptr_t>(ptr), desiredAlignment, currentAlignment);
+    return findNextAlignedPosition(reinterpret_cast<std::uintptr_t>(ptr), desiredAlignment,
+                                   currentAlignment);
 }
 
 template <class T, class U>
