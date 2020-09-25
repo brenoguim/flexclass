@@ -145,6 +145,7 @@ template <class T, class = void>
 struct is_handle : std::false_type
 {
 };
+
 template <class T>
 struct is_handle<T, typename void_<typename T::fc_handle>::type>
     : std::true_type
@@ -160,16 +161,19 @@ struct Ignore
     {
     }
 };
+
 template <class T, class = void>
 struct ArrayBuildersConverter
 {
     using type = Ignore;
 };
+
 template <class T>
 struct ArrayBuildersConverter<T[], void>
 {
     using type = ArrayBuilder<T>;
 };
+
 template <class T>
 struct ArrayBuildersConverter<
     T, typename void_<typename is_handle<T>::enable>::type>
@@ -182,11 +186,13 @@ struct GetAlignmentRequirement
 {
     static constexpr auto value = alignof(T);
 };
+
 template <class T>
 struct GetAlignmentRequirement<T[], void>
 {
     static constexpr auto value = alignof(T);
 };
+
 template <class T>
 struct GetAlignmentRequirement<
     T, typename void_<typename is_handle<T>::enable>::type>
@@ -244,6 +250,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         return get_element<e>(*this);
     }
+
     template <auto e>
     decltype(auto) get() const
     {
@@ -255,6 +262,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         return get_element<e>(*this).begin(this);
     }
+
     template <auto e>
     decltype(auto) end() const
     {
@@ -266,6 +274,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     {
         return get_element<e>(*this).begin(this);
     }
+
     template <auto e>
     decltype(auto) end()
     {
