@@ -103,28 +103,23 @@ struct ArrayBuilder
     }
 
     //! Creates the array of size "sz" in the given buffer.
-    void buildArray(void*& buf, std::size_t& space, std::size_t sz)
+    void buildArray(void*& buf, std::size_t sz) { buildArray(buf, Arg<detail::NoIterator>{sz}); }
+
+    //! Creates the array with inputs specified by Arg in the given buffer.
+    template <class InputIt>
+    void buildArray(void*& buf, Arg<InputIt>&& arg)
     {
-        buildArray(buf, space, Arg<detail::NoIterator>{sz});
+        buildArray(buf, arg);
     }
 
     //! Creates the array with inputs specified by Arg in the given buffer.
     template <class InputIt>
-    void buildArray(void*& buf, std::size_t& space, Arg<InputIt>&& arg)
-    {
-        buildArray(buf, space, arg);
-    }
-
-    //! Creates the array with inputs specified by Arg in the given buffer.
-    template <class InputIt>
-    void buildArray(void*& buf, std::size_t& space, Arg<InputIt>& arg)
+    void buildArray(void*& buf, Arg<InputIt>& arg)
     {
         // Find the fist aligned byte suitable for creating T objects
         auto numBytes = arg.m_size * sizeof(T);
-        auto ptr = std::align(alignof(T), numBytes, buf, space);
-        assert(ptr);
-        space -= numBytes;
-        buf = incr(buf, numBytes);
+        auto ptr = (void*)findNextAlignedPosition(buf, alignof(T), 1);
+        buf = incr(ptr, numBytes);
 
         auto b = static_cast<T*>(ptr);
         auto e = b + arg.m_size;
@@ -372,11 +367,9 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             using Element = remove_cvref_t<decltype(element)>;
             using Idx = decltype(idx);
             if constexpr (isArrayBuilder<Element>::value)
-                element.buildArray(arrayBuffer, numBytesForArrays,
+                element.buildArray(arrayBuffer,
                                    pickFromPack<Idx::value>(std::forward<Args>(args)...));
         });
-
-        assert(numBytesForArrays == 0); // All bytes were consumed
 
         for_each_zipped<sizeof...(T)>(*ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {
             using ArrBuildersElement = remove_cvref_t<decltype(arrayBuilder)>;
