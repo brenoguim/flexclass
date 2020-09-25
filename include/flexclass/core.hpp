@@ -200,34 +200,16 @@ struct isArrayBuilder<ArrayBuilder<T>> : std::true_type
 {
 };
 
-template <class T>
-struct void_
-{
-    using type = void;
-};
-
 template <class T, class = void>
 struct isHandle : std::false_type
 {
 };
 
-// Helper trait. TODO: move to utility.hpp
 template <class T>
 struct isHandle<T, typename void_<typename T::fc_handle_type>::type>
     : std::true_type
 {
     using enable = T;
-};
-
-// Helper type that will be constructed from any input, but will
-// ignore it TODO: move to utility.hpp
-struct Ignore
-{
-    Ignore() = default;
-    template <class T>
-    Ignore(T&&)
-    {
-    }
 };
 
 /*! Finds handle types in the types passed by the user
@@ -284,40 +266,6 @@ struct CollectAlignment
     static constexpr auto value =
         std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
-
-/*! Two step deleter
- *  It manages a void* that is deallocated with the allocator.
- *  The user can then set "m_typeCreated" to true, and it will
- *  also call the destructor of such type.
- *
- *  TODO: Move to memory.hpp
- */
-template <class T, class Alloc>
-struct DeleteFn
-{
-    DeleteFn(Alloc& alloc) : m_alloc(&alloc) {}
-    void operator()(void* ptr) const
-    {
-        if (m_typeCreated)
-            static_cast<T*>(ptr)->~T();
-        m_alloc->deallocate(ptr);
-    }
-    Alloc* m_alloc;
-    bool m_typeCreated{false};
-};
-
-/* Default allocator that calls operator new/delete
- * TODO: Move to memory.hpp
- */
-struct NewDeleteAllocator
-{
-    void* allocate(std::size_t sz) { return ::operator new(sz); }
-    void deallocate(void* ptr) { ::operator delete(const_cast<void*>(ptr)); }
-};
-
-//! TODO: move to utility.hpp
-template <class T>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 template <class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase
