@@ -8,7 +8,7 @@ struct ArrayDeleter
 {
     ArrayDeleter(T* begin) : m_begin(begin), m_end(begin) {}
 
-    ~ArrayDeleter() { reverse_destroy(m_begin, m_end); }
+    ~ArrayDeleter() { reverseDestroy(m_begin, m_end); }
 
     void setEnd(T* end) { m_end = end; }
     void release() { m_begin = m_end = nullptr; }
