@@ -1,6 +1,7 @@
 #ifndef FC_FLEXCLASS_CORE_HPP
 #define FC_FLEXCLASS_CORE_HPP
 
+#include "algorithm.hpp"
 #include "tuple.hpp"
 
 #include <cassert>
@@ -24,21 +25,6 @@ struct Handle
     using fc_handle = T;
     using type = T;
 };
-
-template <class T>
-void reverse_destroy(T* b, T* e)
-{
-    if (b != e)
-    {
-        while (1)
-        {
-            e--;
-            e->~T();
-            if (e == b)
-                break;
-        }
-    }
-}
 
 template <class T>
 struct ArrayDeleter
