@@ -50,7 +50,7 @@ Message::Type* msgFactory(std::string header, int dataSize)
 }
 ```
 
-[See this example on Compiler Explorer](https://godbolt.org/z/EGTvhP)
+[See this example on Compiler Explorer](https://godbolt.org/z/av4bM4)
 
 In this new version, members are declared as arguments of `fc::FlexibleClass`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->begin<Data>()`
 
