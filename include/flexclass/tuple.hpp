@@ -6,7 +6,12 @@
 namespace fc
 {
 
-struct Default;
+/*! Placeholder type to indicate to the library that
+ *  a type should just get default initialization
+ */
+struct Default
+{
+};
 
 constexpr std::size_t findNextAlignedPosition(std::size_t pos,
                                               std::size_t desiredAlignment)
