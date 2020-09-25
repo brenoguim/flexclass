@@ -3,69 +3,82 @@ A library for structures with flexible layout. See the [User Guide](../master/Us
 
 ## Problem statement
 
-`C++` offers the `struct` or `class` as a way to group objects and abstract complexity. However, sometimes that leads to suboptimal designs:
-
+Consider the following implementation of a `Node` in a graph structure:
 ```
-struct Message
+struct Node
 {
-    std::string header;
-    std::unique_ptr<char[]> m_data;
+    std::size_t              id;
+    void*                    userData {nullptr};
+    std::unique_ptr<Node*[]> links;
 };
 
-Message* msgFactory(std::string header, int dataSize)
+Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
 {
-    auto* m = new Message{std::move(header), std::make_unique<char[]>(dataSize)};
-    std::strcpy(m->m_data.get(), "Default message");
-    return m;
+    auto n = new Node{id};
+    n->links = std::make_unique<Node*[]>(links.size());
+    std::copy(links.begin(), links.end(), n->links.get());
+    return n;
 }
 ```
 
-In this scenario, everytime `msgFactory` is called two allocations will occur:
-- One for the `m_data` field containing the data
-- One for the `Message` object itself
+In this scenario, everytime `makeGraphNode` is called two allocations will occur:
+- One for `links` array
+- One for `Node` object itself
 
-It is a rather common technique to group these allocations together. Somes examples are:
-- `std::make_shared<T>` will use a single allocation to create the control block and the T object
-- `new Object[10]` where `Object` is non-trivially-destructible will force the compiler to allocate extra space for the size of the array
-    - This array size is necessary iterate on all elements calling the destructor
-- Many high-performance codebases (such as `LLVM`) will apply this technique to avoid allocations
-
-The goal of merging these allocations is to improve performance through less `malloc` calls, improving locality and reducing fragmentation.
+Multiple allocations can be costly and incur in memory fragmentation which reduce cache friendlyness.
 
 ## Enter Flexclass
 
-The same `Message` can be implemented with `Flexclass`:
+The same `Node` can be implemented with `Flexclass`:
 
 ```
-namespace Message {
-    enum Members {Header, Data};
-    using Type = fc::FlexibleClass<std::string, char[]>;
-}
-
-Message::Type* msgFactory(std::string header, int dataSize)
+struct Node : fc::FlexibleBase<Node,
+                  /*Members:*/ std::size_t, void*, Node*[]>
 {
-    auto* m = Message::Type::make(std::move(header), dataSize);
-    std::strcpy(m->begin<Message::Data>(), "Default message");
-    return m;
+    enum Members {Id, UserData, Links};
+    using FLB::FLB;
+};
+
+Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
+{
+    auto n = Node::make(id, /*user data*/nullptr, /*array size*/links.size());
+    std::copy(links.begin(), links.end(), n->begin<Node::Links>());
+    return n;
 }
 ```
 
-[See this example on Compiler Explorer](https://godbolt.org/z/av4bM4)
+[See this example on Compiler Explorer](https://godbolt.org/z/Pcbroj)
 
-In this new version, members are declared as arguments of `fc::FlexibleClass`. It's is convenient to create an enumeration with the names of each member: `m->get<Header>()` , `m->begin<Data>()`
+In this new version, members are declared as arguments of `fc::FlexibleBase`. The `Members` enum serves as a convience to allow: `m->get<Node::Id>()` , `m->begin<Node::Links>()`
 
-To build the layout, `Flexclass` inspects the argument list, finds `char[]` and understands that a `char` array must be attached to the allocation.
+To build the layout, `Flexclass` inspects the member type list, finds `Node*[]` and understands that a `Node*` array must be attached to the allocation.
 
-The layout of the `Message` is:
+The layout of the `Node` is:
 ```
-                   _____
-                  |     |
-                  |     V
-|[std::string] [char*]| [char] [char] [char] ... [char]
-|                     |
-|                     |
-|      Message        |
+                                _______
+                               |       |
+                               |       V
+| [std::size_t]   [void*]   [Node**] | [Node*] [Node*] [Node*] ... [Node*]
+|       Id       UserData    Links   |  
+|                                    |
+|                  Node              |
 ```
+
+Now a single allocation is performed to store both the `Node` and the array of `Node*`.
+
+One can reduce the size even more by using the fact that the `Node*` array will always be at the end of the `Node`:
+```
+struct Message : public fc::FlexibleBase<Message, std::size_t, void*, fc::AdjacentArray<Node*>>
+```
+
+Which would generate the following compact layout:
+```
+|[std::size_t]   [void*]      []    | [Node*] [Node*] [Node*] ... [Node*]
+|      Id       UserData    Links   |  
+|                                   |
+|                 Node              |
+```
+
 
 `Flexclass` is not limited to one array, so the following declaration is perfectly valid:
 ```
@@ -84,7 +97,7 @@ Which will generate the following layout:
 |[int*] [std::string] [std::string*] [std::string*] [bool]| [int] ... [int] [std::string] ... [std::string]
 |                                                         |
 |                                                         |
-|                       Message                           |
+|                       MyType                            |
 ```
 
 Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
@@ -92,7 +105,7 @@ Notice the layout contains an `end` pointer for the `std::string` array. Since `
 Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::Range` helper:
 
 ```
-struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
+struct Message : public fc::FlexibleBase<Message, std::size_t, fc::Range<char>>
 ```
 
 In this case, there will be an `end` pointer to the `char` array too, giving the user method `end()`:
@@ -105,18 +118,6 @@ std::cout << "Size: " << e - b << std::endl;
 for (auto it = b; it != e; ++it) std::cout << (int) c << std::endl;
 ```
 
-On the other hand, one can reduce the size even more by using the fact that the first array will always be at the end of the `Message`:
-```
-struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
-```
-
-Which would generate the following compact layout:
-```
-|[std::string]| [char] [char] [char] ... [char]
-|             |
-|             |
-|   Message   |
-```
 
 ## Feature summary
 
