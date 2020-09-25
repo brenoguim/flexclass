@@ -6,6 +6,7 @@ include(cmake/Test.cmake)
 project(Flexclass CXX)
 
 option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
+option(FLEXCLASS_BUILD_PERF_TESTS "Whether to build the performance tests" OFF)
 
 set(FLEXCLASS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/flexclass")
 
