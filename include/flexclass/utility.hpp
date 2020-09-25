@@ -13,6 +13,28 @@ decltype(auto) pickFromPack(Arg1&& arg1, Args&&... args)
         return pickFromPack<Idx - 1>(std::forward<Args>(args)...);
 }
 
+//! Utility type to ease SFINAE
+template <class T>
+struct void_
+{
+    using type = void;
+};
+
+// Helper type that will be constructed from any input, but will
+// ignore it
+struct Ignore
+{
+    Ignore() = default;
+    template <class T>
+    Ignore(T&&)
+    {
+    }
+};
+
+//! Removes all references, const and volatile from T
+template <class T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 } // namespace fc
 
 #endif

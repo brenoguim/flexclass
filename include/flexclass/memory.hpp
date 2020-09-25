@@ -3,6 +3,14 @@
 namespace fc
 {
 
+/* Default allocator that calls operator new/delete
+ */
+struct NewDeleteAllocator
+{
+    void* allocate(std::size_t sz) { return ::operator new(sz); }
+    void deallocate(void* ptr) { ::operator delete(ptr); }
+};
+
 template <class T>
 struct ArrayDeleter
 {
@@ -109,6 +117,25 @@ struct unique_ptr : private Deleter
     T* get() { return m_t; }
     T* get() const { return m_t; }
     T* m_t;
+};
+
+/*! Two step deleter
+ *  It manages a void* that is deallocated with the allocator.
+ *  The user can then set "m_typeCreated" to true, and it will
+ *  also call the destructor of such type.
+ */
+template <class T, class Alloc>
+struct DeleteFn
+{
+    DeleteFn(Alloc& alloc) : m_alloc(&alloc) {}
+    void operator()(void* ptr) const
+    {
+        if (m_typeCreated)
+            static_cast<T*>(ptr)->~T();
+        m_alloc->deallocate(ptr);
+    }
+    Alloc* m_alloc;
+    bool m_typeCreated{false};
 };
 
 } // namespace fc
