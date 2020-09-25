@@ -137,7 +137,7 @@ struct TupleBuilder<List<Head, Tail...>> : public TupleBuilder<List<Tail...>>
     static auto obj(void* buf)
     {
         return static_cast<TheType*>(
-            static_cast<void*>(static_cast<char*>(buf) + Head::pos));
+            static_cast<void*>(static_cast<std::byte*>(buf) + Head::pos));
     }
 };
 

@@ -55,7 +55,7 @@ struct ArrayDeleter
 
 inline void* incr(void* in, std::size_t len)
 {
-    return static_cast<char*>(in) + len;
+    return static_cast<std::byte*>(in) + len;
 }
 
 template <class T, class U>
@@ -191,7 +191,7 @@ struct ArrayBuilder
         auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
         auto originalSpace = space;
-        void* ptr = static_cast<char*>(nullptr) + offset;
+        void* ptr = static_cast<std::byte*>(nullptr) + offset;
         auto r = std::align(alignof(T), numBytes, ptr, space);
         assert(r);
         return (originalSpace - space) + numBytes;
