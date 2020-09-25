@@ -161,12 +161,9 @@ struct ArrayBuilder
     static std::size_t numRequiredBytes(std::size_t offset, const Arg<InputIt>& arg)
     {
         auto numBytes = arg.m_size * sizeof(T);
-        std::size_t space = std::numeric_limits<std::size_t>::max();
-        auto originalSpace = space;
-        void* ptr = static_cast<std::byte*>(nullptr) + offset;
-        auto r = std::align(alignof(T), numBytes, ptr, space);
-        assert(r);
-        return (originalSpace - space) + numBytes;
+        auto newOffset = findNextAlignedPosition(offset, alignof(T));
+        newOffset += numBytes;
+        return newOffset - offset;
     }
 
     //! Let the array builder stop tracking the array
