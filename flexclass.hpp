@@ -46,6 +46,8 @@ void reverseDestroy(T* begin, T* end)
 #define FC_FLEXCLASS_CORE_HPP
 #ifndef FLEXCLASS_MEMORY_HPP
 #define FLEXCLASS_MEMORY_HPP
+#include <cstdint>
+#include <utility>
 namespace fc
 {
 /* Default allocator that calls operator new/delete
@@ -177,6 +179,7 @@ struct DeleteFn
 #endif
 #ifndef FC_FLEXCLASS_TUPLE_HPP
 #define FC_FLEXCLASS_TUPLE_HPP
+#include <cstddef>
 #include <cstdint>
 namespace fc
 {
@@ -197,8 +200,21 @@ struct concat_i<List<A...>, List<B...>>
 };
 template <class A, class B>
 using concat = typename concat_i<A, B>::type;
+template <class... Types>
+struct MaxAlign;
+template <>
+struct MaxAlign<>
+{
+    static constexpr auto value = 1;
+};
+template <class First, class... Types>
+struct MaxAlign<First, Types...>
+{
+    static constexpr auto tailAlignment = MaxAlign<Types...>::value;
+    static constexpr auto value = alignof(First) > tailAlignment ? alignof(First) : tailAlignment;
+};
 template <class... T>
-static constexpr std::size_t maxAlign = std::max({std::size_t(1), alignof(T)...});
+static constexpr std::size_t maxAlign = MaxAlign<T...>::value;
 template <class T>
 static constexpr auto CSizeOf = std::is_empty_v<T> ? 0 : sizeof(T);
 template <std::size_t Pos, class List>
@@ -445,6 +461,7 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 } // namespace fc
 #endif
 #include <cassert>
+#include <new>
 #include <type_traits>
 namespace fc
 {
@@ -657,10 +674,19 @@ struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::
     static constexpr std::size_t value = alignof(typename T::fc_handle_type);
 };
 template <class... Types>
-struct CollectAlignment
+struct CollectAlignment;
+template <>
+struct CollectAlignment<>
 {
-    static constexpr auto value =
-        std::max({std::size_t(1), GetAlignmentRequirement<Types>::value...});
+    static constexpr auto value = 1;
+};
+template <class First, class... Types>
+struct CollectAlignment<First, Types...>
+{
+    static constexpr auto tailAlignment = CollectAlignment<Types...>::value;
+    static constexpr auto value = GetAlignmentRequirement<First>::value > tailAlignment
+                                      ? GetAlignmentRequirement<First>::value
+                                      : tailAlignment;
 };
 template <class Derived, class... T>
 class alignas(CollectAlignment<T...>::value) FlexibleBase
