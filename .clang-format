@@ -8,4 +8,5 @@ DerivePointerAlignment: false
 PointerAlignment: Left
 BreakBeforeBraces: Allman
 AlwaysBreakTemplateDeclarations: Yes
+ColumnLimit: 100
 ...

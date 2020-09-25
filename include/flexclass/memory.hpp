@@ -24,10 +24,7 @@ struct ArrayDeleter
     T *m_begin{nullptr}, *m_end{nullptr};
 };
 
-inline void* incr(void* in, std::size_t len)
-{
-    return static_cast<std::byte*>(in) + len;
-}
+inline void* incr(void* in, std::size_t len) { return static_cast<std::byte*>(in) + len; }
 
 template <class T, class U>
 inline auto align(U* u)
@@ -87,14 +84,12 @@ struct unique_ptr : private Deleter
 {
     explicit unique_ptr(T* t) : m_t(t) {}
     template <class DeleterArg>
-    unique_ptr(T* t, DeleterArg&& darg)
-        : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
+    unique_ptr(T* t, DeleterArg&& darg) : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
     {
     }
     unique_ptr(const unique_ptr&) = delete;
     unique_ptr(unique_ptr&& other)
-        : Deleter(std::move(other.get_deleter())),
-          m_t(std::exchange(other.m_t, nullptr))
+        : Deleter(std::move(other.get_deleter())), m_t(std::exchange(other.m_t, nullptr))
     {
     }
     unique_ptr& operator=(const unique_ptr&) = delete;

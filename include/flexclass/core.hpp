@@ -163,8 +163,7 @@ struct ArrayBuilder
     //! "sz"
     // "offset" is the offset in an imaginary array starting from 0
     template <class InputIt>
-    static std::size_t numRequiredBytes(std::size_t offset,
-                                        const Arg<InputIt>& arg)
+    static std::size_t numRequiredBytes(std::size_t offset, const Arg<InputIt>& arg)
     {
         auto numBytes = arg.m_size * sizeof(T);
         std::size_t space = std::numeric_limits<std::size_t>::max();
@@ -206,8 +205,7 @@ struct isHandle : std::false_type
 };
 
 template <class T>
-struct isHandle<T, typename void_<typename T::fc_handle_type>::type>
-    : std::true_type
+struct isHandle<T, typename void_<typename T::fc_handle_type>::type> : std::true_type
 {
     using enable = T;
 };
@@ -230,8 +228,7 @@ struct ArrayBuildersConverter<T[], void>
 };
 
 template <class T>
-struct ArrayBuildersConverter<
-    T, typename void_<typename isHandle<T>::enable>::type>
+struct ArrayBuildersConverter<T, typename void_<typename isHandle<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::fc_handle_type>;
 };
@@ -254,8 +251,7 @@ struct GetAlignmentRequirement<T[], void>
 };
 
 template <class T>
-struct GetAlignmentRequirement<
-    T, typename void_<typename isHandle<T>::enable>::type>
+struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::type>
 {
     static constexpr std::size_t value = alignof(typename T::fc_handle_type);
 };
@@ -347,22 +343,19 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
     template <class Alloc, class... Args>
     static auto makeWithAllocator(Alloc& alloc, Args&&... args)
     {
-        using ArrayBuilders =
-            fc::tuple<typename ArrayBuildersConverter<T>::type...>;
+        using ArrayBuilders = fc::tuple<typename ArrayBuildersConverter<T>::type...>;
 
         std::size_t numBytesForArrays = 0;
         {
-            for_each_in_tuple(
-                ArrayBuilders(), [&](const auto& element, auto idx) mutable {
-                    using Element = remove_cvref_t<decltype(element)>;
-                    using Idx = decltype(idx);
-                    if constexpr (isArrayBuilder<Element>::value)
-                    {
-                        numBytesForArrays += element.numRequiredBytes(
-                            sizeof(Derived) + numBytesForArrays,
-                            pickFromPack<Idx::value>(args...));
-                    }
-                });
+            for_each_in_tuple(ArrayBuilders(), [&](const auto& element, auto idx) mutable {
+                using Element = remove_cvref_t<decltype(element)>;
+                using Idx = decltype(idx);
+                if constexpr (isArrayBuilder<Element>::value)
+                {
+                    numBytesForArrays += element.numRequiredBytes(
+                        sizeof(Derived) + numBytesForArrays, pickFromPack<Idx::value>(args...));
+                }
+            });
         }
 
         auto memBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
@@ -379,24 +372,20 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
             using Element = remove_cvref_t<decltype(element)>;
             using Idx = decltype(idx);
             if constexpr (isArrayBuilder<Element>::value)
-                element.buildArray(
-                    arrayBuffer, numBytesForArrays,
-                    pickFromPack<Idx::value>(std::forward<Args>(args)...));
+                element.buildArray(arrayBuffer, numBytesForArrays,
+                                   pickFromPack<Idx::value>(std::forward<Args>(args)...));
         });
 
         assert(numBytesForArrays == 0); // All bytes were consumed
 
-        for_each_zipped<sizeof...(T)>(
-            *ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {
-                using ArrBuildersElement =
-                    remove_cvref_t<decltype(arrayBuilder)>;
-                if constexpr (isArrayBuilder<ArrBuildersElement>::value)
-                {
-                    handle.setLocation(arrayBuilder.m_begin,
-                                       arrayBuilder.m_end);
-                    arrayBuilder.release();
-                }
-            });
+        for_each_zipped<sizeof...(T)>(*ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {
+            using ArrBuildersElement = remove_cvref_t<decltype(arrayBuilder)>;
+            if constexpr (isArrayBuilder<ArrBuildersElement>::value)
+            {
+                handle.setLocation(arrayBuilder.m_begin, arrayBuilder.m_end);
+                arrayBuilder.release();
+            }
+        });
 
         memBuffer.release();
         return ret;
@@ -422,8 +411,7 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
         reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
             using U = remove_cvref_t<decltype(u)>;
             if constexpr (isHandle<U>::value)
-                if constexpr (!std::is_trivially_destructible<
-                                  typename U::fc_handle_type>::value)
+                if constexpr (!std::is_trivially_destructible<typename U::fc_handle_type>::value)
                 {
                     reverseDestroy(u.begin(p), u.end(p));
                 }
