@@ -61,7 +61,7 @@ struct Arg
 };
 
 //! Use this as argument for creating an array
-auto arg(std::size_t size) { return Arg<detail::NoIterator>{size}; }
+inline auto arg(std::size_t size) { return Arg<detail::NoIterator>{size}; }
 
 //! Use this as argument for creating an array with an initial value
 //  The input iterator will be called for each element
