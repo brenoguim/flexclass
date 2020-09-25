@@ -250,19 +250,10 @@ struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::
 };
 
 template <class... Types>
-struct CollectAlignment;
-template <>
-struct CollectAlignment<>
+struct CollectAlignment
 {
-    static constexpr auto value = 1;
-};
-template <class First, class... Types>
-struct CollectAlignment<First, Types...>
-{
-    static constexpr auto tailAlignment = CollectAlignment<Types...>::value;
-    static constexpr auto value = GetAlignmentRequirement<First>::value > tailAlignment
-                                      ? GetAlignmentRequirement<First>::value
-                                      : tailAlignment;
+    static constexpr auto value =
+        naiveMax({std::size_t(1), GetAlignmentRequirement<Types>::value...});
 };
 
 template <class Derived, class... T>
