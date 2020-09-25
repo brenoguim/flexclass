@@ -1,6 +1,8 @@
 #ifndef FC_FLEXCLASS_TUPLE_HPP
 #define FC_FLEXCLASS_TUPLE_HPP
 
+#include "memory.hpp"
+
 #include <cstdint>
 
 namespace fc
@@ -12,11 +14,6 @@ namespace fc
 struct Default
 {
 };
-
-constexpr std::size_t findNextAlignedPosition(std::size_t pos, std::size_t desiredAlignment)
-{
-    return (pos - 1u + desiredAlignment) & -desiredAlignment;
-}
 
 template <class... T>
 struct List;
