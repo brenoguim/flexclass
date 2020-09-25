@@ -121,7 +121,7 @@ struct unique_ptr : private Deleter
 
 /*! Two step deleter
  *  It manages a void* that is deallocated with the allocator.
- *  The user can then set "m_typeCreated" to true, and it will
+ *  The user can then set "m_objectCreated" to true, and it will
  *  also call the destructor of such type.
  */
 template <class T, class Alloc>
@@ -130,12 +130,12 @@ struct DeleteFn
     DeleteFn(Alloc& alloc) : m_alloc(&alloc) {}
     void operator()(void* ptr) const
     {
-        if (m_typeCreated)
+        if (m_objectCreated)
             static_cast<T*>(ptr)->~T();
         m_alloc->deallocate(ptr);
     }
     Alloc* m_alloc;
-    bool m_typeCreated{false};
+    bool m_objectCreated{false};
 };
 
 } // namespace fc

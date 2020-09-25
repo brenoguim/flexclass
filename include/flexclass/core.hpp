@@ -103,21 +103,21 @@ struct ArrayBuilder
     }
 
     //! Creates the array of size "sz" in the given buffer.
-    void consume(void*& buf, std::size_t& space, std::size_t sz)
+    void buildArray(void*& buf, std::size_t& space, std::size_t sz)
     {
-        consume(buf, space, Arg<detail::NoIterator>{sz});
+        buildArray(buf, space, Arg<detail::NoIterator>{sz});
     }
 
     //! Creates the array with inputs specified by Arg in the given buffer.
     template <class InputIt>
-    void consume(void*& buf, std::size_t& space, Arg<InputIt>&& arg)
+    void buildArray(void*& buf, std::size_t& space, Arg<InputIt>&& arg)
     {
-        consume(buf, space, arg);
+        buildArray(buf, space, arg);
     }
 
     //! Creates the array with inputs specified by Arg in the given buffer.
     template <class InputIt>
-    void consume(void*& buf, std::size_t& space, Arg<InputIt>& arg)
+    void buildArray(void*& buf, std::size_t& space, Arg<InputIt>& arg)
     {
         // Find the fist aligned byte suitable for creating T objects
         auto numBytes = arg.m_size * sizeof(T);
@@ -352,45 +352,53 @@ class alignas(CollectAlignment<T...>::value) FlexibleBase
 
         std::size_t numBytesForArrays = 0;
         {
-            for_each_in_tuple(ArrayBuilders(), [&](const auto& u,
-                                                   auto idx) mutable {
-                using U = remove_cvref_t<decltype(u)>;
-                using Idx = decltype(idx);
-                if constexpr (isArrayBuilder<U>::value)
-                    numBytesForArrays +=
-                        u.numRequiredBytes(sizeof(Derived) + numBytesForArrays,
-                                           pickFromPack<Idx::value>(args...));
-            });
+            for_each_in_tuple(
+                ArrayBuilders(), [&](const auto& element, auto idx) mutable {
+                    using Element = remove_cvref_t<decltype(element)>;
+                    using Idx = decltype(idx);
+                    if constexpr (isArrayBuilder<Element>::value)
+                    {
+                        numBytesForArrays += element.numRequiredBytes(
+                            sizeof(Derived) + numBytesForArrays,
+                            pickFromPack<Idx::value>(args...));
+                    }
+                });
         }
 
-        auto implBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
+        auto memBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
             alloc.allocate(sizeof(Derived) + numBytesForArrays), alloc);
 
-        ArrayBuilders pi;
+        auto ret = new (memBuffer.get()) Derived(std::forward<Args>(args)...);
+        memBuffer.get_deleter().m_objectCreated = true;
 
-        auto ret = new (implBuffer.get()) Derived(std::forward<Args>(args)...);
-        implBuffer.get_deleter().m_typeCreated = true;
-
+        // Start creating arrays right after the Derived object
         void* arrayBuffer = ret + 1;
-        for_each_in_tuple(pi, [&](auto& u, auto idx) mutable {
-            using U = remove_cvref_t<decltype(u)>;
+
+        ArrayBuilders arrayBuilders;
+        for_each_in_tuple(arrayBuilders, [&](auto& element, auto idx) mutable {
+            using Element = remove_cvref_t<decltype(element)>;
             using Idx = decltype(idx);
-            if constexpr (isArrayBuilder<U>::value)
-                u.consume(
+            if constexpr (isArrayBuilder<Element>::value)
+                element.buildArray(
                     arrayBuffer, numBytesForArrays,
                     pickFromPack<Idx::value>(std::forward<Args>(args)...));
         });
 
-        for_each_zipped<sizeof...(T)>(*ret, pi, [](auto& u, auto& k) {
-            using K = remove_cvref_t<decltype(k)>;
-            if constexpr (isArrayBuilder<K>::value)
-            {
-                u.setLocation(k.m_begin, k.m_end);
-                k.release();
-            }
-        });
+        assert(numBytesForArrays == 0); // All bytes were consumed
 
-        implBuffer.release();
+        for_each_zipped<sizeof...(T)>(
+            *ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {
+                using ArrBuildersElement =
+                    remove_cvref_t<decltype(arrayBuilder)>;
+                if constexpr (isArrayBuilder<ArrBuildersElement>::value)
+                {
+                    handle.setLocation(arrayBuilder.m_begin,
+                                       arrayBuilder.m_end);
+                    arrayBuilder.release();
+                }
+            });
+
+        memBuffer.release();
         return ret;
     }
 
