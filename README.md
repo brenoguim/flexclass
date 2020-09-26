@@ -44,7 +44,7 @@ struct Node
 Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
 {
     auto n = fc::make<Node>(links.size()) (id);
-    std::copy(links.begin(), links.end(), n.links.begin());
+    std::copy(links.begin(), links.end(), n->links.begin());
     return n;
 }
 ```
@@ -54,7 +54,7 @@ The required changes are:
 - Declare `links` as `fc::Array<Node*>` which is a special handle for an array
 - Construct the object with the syntax `fc::make< T > ( array sizes ) ( T constructor arguments );`
 
-[See this example on Compiler Explorer](https://godbolt.org/z/Pcbroj)
+[See this example on Compiler Explorer](https://godbolt.org/z/9K93Pe)
 
 To build the layout, `Flexclass` uses `fc_handles` to collect a list of array types to be built.
 
