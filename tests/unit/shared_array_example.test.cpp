@@ -9,7 +9,7 @@ class SharedArray<T[]>
 {
     struct Impl
     {
-        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        auto fc_handles() { return fc::make_tuple(&data); }
         unsigned refCount;
         std::conditional_t<std::is_trivially_destructible_v<T>,
                           fc::Array<T>,
@@ -18,7 +18,7 @@ class SharedArray<T[]>
 
   public:
     /* Interesting public API */
-    static SharedArray make(std::size_t len) { return {fc::v2::make<Impl>(len)(/*num references*/1u)}; }
+    static SharedArray make(std::size_t len) { return {fc::make<Impl>(len)(/*num references*/1u)}; }
 
     decltype(auto) operator[](std::size_t i) { return m_data->data.begin()[i]; }
     decltype(auto) operator[](std::size_t i) const { return m_data->data.begin()[i]; }
@@ -34,7 +34,7 @@ class SharedArray<T[]>
   private:
     SharedArray(Impl* data) : m_data(data) {}
     void incr() { if (m_data) m_data->refCount++; }
-    void decr() { if (m_data && m_data->refCount-- == 1) fc::v2::destroy(m_data); }
+    void decr() { if (m_data && m_data->refCount-- == 1) fc::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 
@@ -65,14 +65,14 @@ class SharedRange<T[]>
 {
     struct Impl
     {
-        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        auto fc_handles() { return fc::make_tuple(&data); }
         std::atomic<unsigned> refCount;
         fc::AdjacentRange<T> data;
     };
 
   public:
     /* Interesting public API */
-    static SharedRange make(std::size_t len) { return {fc::v2::make<Impl>(len)(/*num references*/1u)}; }
+    static SharedRange make(std::size_t len) { return {fc::make<Impl>(len)(/*num references*/1u)}; }
 
     auto begin() { return m_data->data.begin(m_data); }
     auto end() { return m_data->data.end(m_data); }
@@ -88,7 +88,7 @@ class SharedRange<T[]>
   private:
     SharedRange(Impl* data) : m_data(data) {}
     void incr() { if (m_data) m_data->refCount++; }
-    void decr() { if (m_data && m_data->refCount-- == 1) fc::v2::destroy(m_data); }
+    void decr() { if (m_data && m_data->refCount-- == 1) fc::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 

@@ -9,14 +9,14 @@ struct Foo
 
 struct Message
 {
-    auto fc_handles() { return fc::v2::make_tuple(&c, &d); }
+    auto fc_handles() { return fc::make_tuple(&c, &d); }
     int a;
-    float b;
+    double b;
     fc::Array<long> c;
     fc::Array<Foo> d;
 };
 
 int main()
 {
-    auto m = fc::v2::make<Message>(100, 2)(1, 1.0);
+    auto m = fc::make<Message>(100, 2)(1, 1.0);
 }

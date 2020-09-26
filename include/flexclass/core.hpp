@@ -218,9 +218,6 @@ struct ArrayBuildersConverter<T, typename void_<typename isHandle<T>::enable>::t
     using type = ArrayBuilder<typename T::fc_handle_type>;
 };
 
-namespace v2
-{
-
 template <class... Args>
 auto make_tuple(Args&&... args)
 {
@@ -230,7 +227,7 @@ auto make_tuple(Args&&... args)
 template <class... Args>
 auto args(Args&&... args)
 {
-    return ::fc::v2::make_tuple(fc::arg(std::forward<Args>(args))...);
+    return ::fc::make_tuple(fc::arg(std::forward<Args>(args))...);
 }
 
 template <int I, class Fn, class First, class... T>
@@ -354,38 +351,36 @@ auto destroy(FC* ptr, Alloc& alloc)
 template <class FC, class... AArgs>
 auto make(AArgs&&... aArgs)
 {
-    return [a = fc::v2::args(aArgs...)](auto&&... cArgs) mutable {
-        return fc::v2::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...);
+    return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
+        return fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...);
     };
 }
 
 template <class FC, class Alloc, class... AArgs>
 auto make(WithAllocator, Alloc& alloc, AArgs&&... aArgs)
 {
-    return [a = fc::v2::args(aArgs...), &alloc](auto&&... cArgs) mutable {
-        return fc::v2::makeWithAllocator<FC>(alloc, a, std::forward<decltype(cArgs)>(cArgs)...);
+    return [a = fc::args(aArgs...), &alloc](auto&&... cArgs) mutable {
+        return fc::makeWithAllocator<FC>(alloc, a, std::forward<decltype(cArgs)>(cArgs)...);
     };
 }
 
 template <class T>
 struct DestroyFn
 {
-    void operator()(T* t) { fc::v2::destroy(t); }
+    void operator()(T* t) { fc::destroy(t); }
 };
 
 template <class T>
-using UniquePtr = fc::unique_ptr<T, fc::v2::DestroyFn<T>>;
+using UniquePtr = fc::unique_ptr<T, fc::DestroyFn<T>>;
 
 template <class FC, class... AArgs>
 auto make_unique(AArgs&&... aArgs)
 {
-    return [a = fc::v2::args(aArgs...)](auto&&... cArgs) mutable {
-        return fc::v2::UniquePtr<FC>(
-            fc::v2::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
+    return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
+        return fc::UniquePtr<FC>(
+            fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
     };
 }
-
-} // namespace v2
 
 } // namespace fc
 

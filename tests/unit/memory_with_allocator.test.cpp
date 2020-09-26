@@ -39,7 +39,7 @@ TEST_CASE( "Allocate and destroy", "[allocator]" )
 {
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        auto fc_handles() { return fc::make_tuple(&data); }
         std::string str;
         fc::Array<char> data;
     };
@@ -49,13 +49,13 @@ TEST_CASE( "Allocate and destroy", "[allocator]" )
 
     AllocTrack alloc;
 
-    auto m = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
+    auto m = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::v2::destroy(m, alloc);
+    fc::destroy(m, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);
@@ -65,7 +65,7 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 {
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        auto fc_handles() { return fc::make_tuple(&data); }
         std::string str;
         fc::Range<char> data;
     };
@@ -75,13 +75,13 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 
     AllocTrack alloc;
 
-    auto m = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
+    auto m = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::v2::destroy(m, alloc);
+    fc::destroy(m, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);
@@ -91,7 +91,7 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[allocator]" )
 {
     struct Message : public fc::AdjacentArray<char>
     {
-        auto fc_handles() { return fc::v2::make_tuple(&data()); }
+        auto fc_handles() { return fc::make_tuple(&data()); }
         std::string str;
         fc::AdjacentArray<char>& data() { return *this; }
     };
@@ -101,13 +101,13 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[allocator]" )
 
     AllocTrack alloc;
 
-    auto r = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
+    auto r = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::v2::destroy(r, alloc);
+    fc::destroy(r, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);

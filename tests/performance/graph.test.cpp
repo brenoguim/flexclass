@@ -37,7 +37,7 @@ namespace withfc
 {
     struct Node
     {
-        auto fc_handles() { return fc::v2::make_tuple(&links); }
+        auto fc_handles() { return fc::make_tuple(&links); }
 
         std::size_t id;
         std::size_t numLinks;
@@ -46,7 +46,7 @@ namespace withfc
 
         static auto make_unique(std::size_t id, std::size_t numLinks, bool visited, std::size_t size)
         {
-            return fc::v2::make_unique<Node>(size)(id, numLinks, visited);
+            return fc::make_unique<Node>(size)(id, numLinks, visited);
         }
     };
 
@@ -57,7 +57,7 @@ namespace withfc
     struct Dag
     {
         using N = Node;
-        std::vector<fc::v2::UniquePtr<Node>> nodes;
+        std::vector<fc::UniquePtr<Node>> nodes;
     };
 }
 

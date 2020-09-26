@@ -7,13 +7,13 @@ TEST_CASE( "Empty class", "[Edge cases]" )
 {
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(); }
+        auto fc_handles() { return fc::make_tuple(); }
     };
 
     static_assert(sizeof(Message) == 1, "Size of empty message should be the minimum required by C++ - 1 byte");
 
     // Check that it's possible to instantiate and destroy
-    fc::v2::make_unique<Message>()();
+    fc::make_unique<Message>()();
 }
 
 TEST_CASE( "Just one array and no regular members", "[Edge cases]" )
@@ -21,10 +21,10 @@ TEST_CASE( "Just one array and no regular members", "[Edge cases]" )
     struct Message
     {
         fc::Array<short> zero;
-        auto fc_handles() { return fc::v2::make_tuple(&zero); }
+        auto fc_handles() { return fc::make_tuple(&zero); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)();
+    auto m = fc::make_unique<Message>(1000)();
 
     static_assert(std::is_same_v<decltype(m->zero.begin()), short*>);
 
@@ -37,11 +37,11 @@ TEST_CASE( "Just one member and no array", "[Edge cases]" )
     struct Message
     {
         std::string str;
-        auto fc_handles() { return fc::v2::make_tuple(); }
+        auto fc_handles() { return fc::make_tuple(); }
     };
 
     auto initStr = "default initialized string for testing";
-    auto m = fc::v2::make_unique<Message>()(initStr);
+    auto m = fc::make_unique<Message>()(initStr);
 
     CHECK(m->str == initStr);
 
@@ -56,10 +56,10 @@ TEST_CASE( "Array<T> with trivial type", "[basic]" )
     {
         std::string str;
         fc::Array<int> ints;
-        auto fc_handles() { return fc::v2::make_tuple(&ints); }
+        auto fc_handles() { return fc::make_tuple(&ints); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)("SmallMsg");
+    auto m = fc::make_unique<Message>(1000)("SmallMsg");
     for (int i = 0; i < 1000; ++i) m->ints.begin()[i] = i;
     for (int i = 0; i < 1000; ++i) CHECK(m->ints.begin()[i] == i);
 }
@@ -79,10 +79,10 @@ TEST_CASE( "AdjacentArray<T> with trivial type", "[basic]" )
         std::string str;
         fc::AdjacentArray<int> m_ints;
         auto ints_begin() { return m_ints.begin(this); }
-        auto fc_handles() { return fc::v2::make_tuple(&m_ints); }
+        auto fc_handles() { return fc::make_tuple(&m_ints); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)("SmallMsg");
+    auto m = fc::make_unique<Message>(1000)("SmallMsg");
     for (int i = 0; i < 1000; ++i) m->ints_begin()[i] = i;
     for (int i = 0; i < 1000; ++i) CHECK(m->ints_begin()[i] == i);
 }
@@ -102,9 +102,9 @@ TEST_CASE( "Range<T> with trivial type", "[basic]" )
     {
         std::string str;
         fc::Range<long> longs;
-        auto fc_handles() { return fc::v2::make_tuple(&longs); }
+        auto fc_handles() { return fc::make_tuple(&longs); }
     };
-    auto m = fc::v2::make_unique<Message>(1000)(initStr);
+    auto m = fc::make_unique<Message>(1000)(initStr);
 
     for (int i = 0; i < 1000; ++i) m->longs.begin()[i] = i;
     for (int i = 0; i < 1000; ++i) CHECK(m->longs.begin()[i] == i);
@@ -139,9 +139,9 @@ TEST_CASE( "Range<T> array with non-trivial type", "[basic]" )
     {
         std::string str;
         fc::Range<std::string> strings;
-        auto fc_handles() { return fc::v2::make_tuple(&strings); }
+        auto fc_handles() { return fc::make_tuple(&strings); }
     };
-    auto m = fc::v2::make_unique<Message>(1000)(initStr);
+    auto m = fc::make_unique<Message>(1000)(initStr);
 
     for (int i = 0; i < 1000; ++i) m->strings.begin()[i] = initStr;
     for (int i = 0; i < 1000; ++i) CHECK(m->strings.begin()[i] == initStr);
@@ -180,10 +180,10 @@ TEST_CASE( "AdjacentRange<T> with trivial type", "[basic]" )
         fc::AdjacentRange<long> m_longs;
         auto longs_begin() { return m_longs.begin(this); }
         auto longs_end() { return m_longs.end(this); }
-        auto fc_handles() { return fc::v2::make_tuple(&m_longs); }
+        auto fc_handles() { return fc::make_tuple(&m_longs); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)(initStr);
+    auto m = fc::make_unique<Message>(1000)(initStr);
 
     for (int i = 0; i < 1000; ++i) m->longs_begin()[i] = i;
     for (int i = 0; i < 1000; ++i) CHECK(m->longs_begin()[i] == i);
@@ -220,9 +220,9 @@ TEST_CASE( "AdjacentRange<T> array with non-trivial type", "[basic]" )
         fc::AdjacentRange<std::string> m_strings;
         auto strings_begin() { return m_strings.begin(this); }
         auto strings_end() { return m_strings.end(this); }
-        auto fc_handles() { return fc::v2::make_tuple(&m_strings); }
+        auto fc_handles() { return fc::make_tuple(&m_strings); }
     };
-    auto m = fc::v2::make_unique<Message>(1000)(initStr);
+    auto m = fc::make_unique<Message>(1000)(initStr);
 
     for (int i = 0; i < 1000; ++i) m->strings_begin()[i] = initStr;
     for (int i = 0; i < 1000; ++i) CHECK(m->strings_begin()[i] == initStr);
@@ -258,10 +258,10 @@ TEST_CASE( "char followed by AdjacentArray<long> to check that long* is aligned 
         char chr;
         fc::AdjacentArray<long> m_longs;
         auto longs_begin() { return m_longs.begin(this); }
-        auto fc_handles() { return fc::v2::make_tuple(&m_longs); }
+        auto fc_handles() { return fc::make_tuple(&m_longs); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)('\0');
+    auto m = fc::make_unique<Message>(1000)('\0');
 
     // Expect the first 'long' to be aligned 8 bytes after char
     CHECK((std::uintptr_t)&m->chr == (std::uintptr_t) m->longs_begin() - 8);
@@ -278,10 +278,10 @@ TEST_CASE( "char derived from AdjacentArray<long> to check that long* is aligned
         char chr;
 
         auto longs_begin() { return longs().begin(this); }
-        auto fc_handles() { return fc::v2::make_tuple(&longs()); }
+        auto fc_handles() { return fc::make_tuple(&longs()); }
     };
 
-    auto m = fc::v2::make_unique<Message>(1000)('\0');
+    auto m = fc::make_unique<Message>(1000)('\0');
 
     // Expect the first 'long' to be aligned 8 bytes after char
     CHECK((std::uintptr_t)&m->chr == (std::uintptr_t) m->longs_begin() - 8);
@@ -294,19 +294,19 @@ TEST_CASE( "Adjacent array char->long to verify alignment with custom", "[alignm
 {
     struct Message
     {
-        auto fc_handles() const { return fc::v2::make_tuple(&B, &C); }
-        auto fc_handles()       { return fc::v2::make_tuple(&B, &C); }
+        auto fc_handles() const { return fc::make_tuple(&B, &C); }
+        auto fc_handles()       { return fc::make_tuple(&B, &C); }
 
         auto begin_B() { return B.begin(this); }
         auto end_B() { return B.end(this); }
         auto begin_C() { return C.begin(this); }
 
         char A;
-        fc::v2::AdjacentArray<long, 0> C;
+        fc::AdjacentArray<long, 0> C;
         fc::AdjacentRange<char> B;
     };
 
-    auto m = fc::v2::make_unique<Message>(1, 1)((char)13);
+    auto m = fc::make_unique<Message>(1, 1)((char)13);
 
     CHECK(m->A == 13);
 
@@ -375,7 +375,7 @@ TEST_CASE( "All objects should be destroyed in the reverse order they were creat
 
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&t1, &t2); } 
+        auto fc_handles() { return fc::make_tuple(&t1, &t2); }
         Thrower a;
         Thrower b;
         Thrower c;
@@ -383,7 +383,7 @@ TEST_CASE( "All objects should be destroyed in the reverse order they were creat
         fc::Range<Thrower> t2;
     };
 
-    auto m = fc::v2::make_unique<Message>(100, 100)(initStr, initStr, initStr);
+    auto m = fc::make_unique<Message>(100, 100)(initStr, initStr, initStr);
 }
 
 TEST_CASE( "Strong exception guarantees when member throws on constructor", "[exception]" )
@@ -392,7 +392,7 @@ TEST_CASE( "Strong exception guarantees when member throws on constructor", "[ex
 
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(); } 
+        auto fc_handles() { return fc::make_tuple(); }
         Thrower a;
         Thrower b;
         Thrower c;
@@ -402,7 +402,7 @@ TEST_CASE( "Strong exception guarantees when member throws on constructor", "[ex
 
     try
     {
-        auto m = fc::v2::make_unique<Message>()();
+        auto m = fc::make_unique<Message>()();
     }
     catch (std::runtime_error& err)
     {
@@ -417,7 +417,7 @@ TEST_CASE( "Strong exception guarantees when member array throws on constructor"
 
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&a1, &a2, &a3); } 
+        auto fc_handles() { return fc::make_tuple(&a1, &a2, &a3); }
         std::string a;
         fc::Range<Thrower> a1;
         fc::Range<Thrower> a2;
@@ -427,7 +427,7 @@ TEST_CASE( "Strong exception guarantees when member array throws on constructor"
     std::string initStr = "default initialized string for testing";
     try
     {
-        auto m = fc::v2::make_unique<Message>(10, 10, 10)(initStr);
+        auto m = fc::make_unique<Message>(10, 10, 10)(initStr);
     }
     catch (std::runtime_error& err)
     {
@@ -445,10 +445,10 @@ namespace {
 }
 
 TEST_CASE( "Strong exception guarantees when member array throws on constructor, and other arrays have noexcept constructors", "[exception]" )
-{   
+{
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&a1, &a2, &a3); } 
+        auto fc_handles() { return fc::make_tuple(&a1, &a2, &a3); }
         std::string a;
         fc::Range<IncrementOnDestructor> a1;
         fc::Range<Thrower> a2;
@@ -461,7 +461,7 @@ TEST_CASE( "Strong exception guarantees when member array throws on constructor,
     std::string initStr = "default initialized string for testing";
     try
     {
-        auto m = fc::v2::make_unique<Message>(10, 10, 10)(initStr);
+        auto m = fc::make_unique<Message>(10, 10, 10)(initStr);
     }
     catch (std::runtime_error& err)
     {
@@ -475,21 +475,21 @@ TEST_CASE( "Array elements should be destroyed in the reverse order of creation 
 {
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&a1); } 
+        auto fc_handles() { return fc::make_tuple(&a1); }
         std::string a;
         fc::Range<Thrower> a1;
     };
 
     resetToThrowAt(10000);
     std::string initStr = "default initialized string for testing";
-    auto m = fc::v2::make_unique<Message>(10)(initStr);
+    auto m = fc::make_unique<Message>(10)(initStr);
 }
 
 TEST_CASE( "Arrays should be destroyed in the reverse order", "[exception]" )
 {
     struct Message
     {
-        auto fc_handles() { return fc::v2::make_tuple(&a1, &a2); } 
+        auto fc_handles() { return fc::make_tuple(&a1, &a2); }
         std::string a;
         fc::Range<Thrower> a1;
         fc::Range<Thrower> a2;
@@ -497,7 +497,7 @@ TEST_CASE( "Arrays should be destroyed in the reverse order", "[exception]" )
 
     resetToThrowAt(10000);
     std::string initStr = "default initialized string for testing";
-    auto m = fc::v2::make_unique<Message>(1,1)(initStr);
+    auto m = fc::make_unique<Message>(1,1)(initStr);
 }
 
 TEST_CASE( "Support initialization of arrays" , "[basic]" )
@@ -505,17 +505,17 @@ TEST_CASE( "Support initialization of arrays" , "[basic]" )
     struct Message
     {
         Message(int i) : a(i) {}
-        auto fc_handles() { return fc::v2::make_tuple(&a1); } 
+        auto fc_handles() { return fc::make_tuple(&a1); }
         int a;
         fc::Array<int> a1;
     };
 
-    auto m = fc::v2::make_unique<Message>(fc::arg(10))(10);
+    auto m = fc::make_unique<Message>(fc::arg(10))(10);
 
     std::vector<int> v;
     v.resize(10);
     std::iota(v.begin(), v.end(), 0);
 
-    m = fc::v2::make_unique<Message>(fc::arg(10, v.begin()))(10);
+    m = fc::make_unique<Message>(fc::arg(10, v.begin()))(10);
     CHECK( std::equal(v.begin(), v.end(), m->a1.begin()) );
 }

@@ -112,31 +112,12 @@ struct AdjacentArray : Handle<T>
         if constexpr (El == -1)
             return aligner(ptr, 1).template get<T>();
         else
-            return aligner(ptr->template end<El>()).template get<T>();
-    }
-};
-namespace v2
-{
-template <class T, int El = -1>
-struct AdjacentArray : Handle<T>
-{
-    using Handle<T>::Handle;
-
-    void setLocation(T* begin, T* end) {}
-
-    template <class Base>
-    auto begin(const Base* ptr) const
-    {
-        if constexpr (El == -1)
-            return aligner(ptr, 1).template get<T>();
-        else
         {
             auto e = ptr->fc_handles().template get<El>()->end(ptr);
             return aligner(e).template get<T>();
         }
     }
 };
-} // namespace v2
 
 /*! Uses another handle index to derivate the
  *  sequence position.
