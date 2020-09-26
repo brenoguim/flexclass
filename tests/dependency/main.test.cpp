@@ -7,7 +7,16 @@ struct Foo
     float b;
 };
 
+struct Message
+{
+    auto fc_handles() { return fc::v2::make_tuple(&c, &d); }
+    int a;
+    float b;
+    fc::Array<long> c;
+    fc::Array<Foo> d;
+};
+
 int main()
 {
-    auto m = fc::FlexibleClass<int, float, long[], Foo[]>::make_unique(1, 1.0, 100, 2);
+    auto m = fc::v2::make<Message>(100, 2)(1, 1.0);
 }

@@ -63,17 +63,21 @@ template<class T> class SharedRange;
 template<class T>
 class SharedRange<T[]>
 {
-    enum Members {RefCount, Data};
-    using Impl = fc::FlexibleClass<std::atomic<unsigned>, fc::AdjacentRange<T>>;
+    struct Impl
+    {
+        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        std::atomic<unsigned> refCount;
+        fc::AdjacentRange<T> data;
+    };
 
   public:
     /* Interesting public API */
-    static SharedRange make(std::size_t len) { return {Impl::make(/*num references*/(unsigned)1, len)}; }
+    static SharedRange make(std::size_t len) { return {fc::v2::make<Impl>(len)(/*num references*/1u)}; }
 
-    auto begin() { return m_data->template begin<Data>(); }
-    auto end() { return m_data->template end<Data>(); }
+    auto begin() { return m_data->data.begin(m_data); }
+    auto end() { return m_data->data.end(m_data); }
 
-    auto use_count() const { return m_data ? m_data->template get<RefCount>().load() : 0; }
+    auto use_count() const { return m_data ? m_data->refCount.load() : 0; }
 
     /* Boilerplate */
     SharedRange(SharedRange&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
@@ -83,8 +87,8 @@ class SharedRange<T[]>
     ~SharedRange() { decr(); }
   private:
     SharedRange(Impl* data) : m_data(data) {}
-    void incr() { if (m_data) m_data->template get<RefCount>()++; }
-    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::destroy(m_data); }
+    void incr() { if (m_data) m_data->refCount++; }
+    void decr() { if (m_data && m_data->refCount-- == 1) fc::v2::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 

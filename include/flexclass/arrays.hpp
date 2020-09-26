@@ -172,14 +172,6 @@ struct AdjacentRange : Handle<T>
     T* m_end;
 };
 
-/*! Customization point to convert a T[] into a proper handle
- */
-template <class T>
-struct ArraySelector<T[]>
-{
-    using type = std::conditional_t<std::is_trivially_destructible<T>::value, Array<T>, Range<T>>;
-};
-
 } // namespace fc
 
 #endif // FC_FLEXCLASS_ARRAYS_HPP
