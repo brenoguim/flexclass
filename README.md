@@ -32,26 +32,26 @@ Multiple allocations can be costly and incur in memory fragmentation which reduc
 The same `Node` can be implemented with `Flexclass`:
 
 ```
-struct Node : fc::FlexibleBase<Node,
-                  /*Members:*/ std::size_t, void*, Node*[]>
+struct Node
 {
-    enum Members {Id, UserData, Links};
-    using FLB::FLB;
+    auto fc_handles() { return fc::make_tuple(&links); }
+
+    std::size_t      id;
+    void*            userData {nullptr};
+    fc::Array<Node*> links;
 };
 
 Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
 {
-    auto n = Node::make(id, /*user data*/nullptr, /*array size*/links.size());
-    std::copy(links.begin(), links.end(), n->begin<Node::Links>());
+    auto n = fc::make<Node>(links.size())(id, nullptr);
+    std::copy(links.begin(), links.end(), n.links.begin());
     return n;
 }
 ```
 
 [See this example on Compiler Explorer](https://godbolt.org/z/Pcbroj)
 
-In this new version, members are declared as arguments of `fc::FlexibleBase`. The `Members` enum serves as a convience to allow: `m->get<Node::Id>()` , `m->begin<Node::Links>()`
-
-To build the layout, `Flexclass` inspects the member type list, finds `Node*[]` and understands that a `Node*` array must be attached to the allocation.
+To build the layout, `Flexclass` uses `fc_handles` to collect a list of array types to be built.
 
 The layout of the `Node` is:
 ```
