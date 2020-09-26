@@ -1,17 +1,21 @@
 # Basic Concepts
 
-`Flexclass` empowers the user to declare structures in the following form:
+`Flexclass` empowers the user to declare structures and arrays in a single allocation.
 
-```
-template<class... Types> struct fc::FlexibleClass<Types...>;
-```
-
-Some of those types are special, we call them `Handles`.
-Handles may request extra memory to be allocated upon construction, so they can refer to it.
+To steps are necessary to make a struct be recognized by the library:
+- Declare handles that will refer to a sequence of objects in memory
+- Declare a `fc_handles` method that the library will use to query
 
 For example:
 ```
-using Message = fc::FlexibleClass<int, fc::Array<long>, std::string>;
+struct MyType
+{
+    int myInt;
+    fc::Array<long> longs;
+    std::string str;
+    
+    auto fc_handles() { return fc::make_tuple(&longs); }
+};
 ```
 
 `fc::Array<long>` is identified as a `Handle`, meaning it wants to point to a group of `long` objects.
@@ -22,107 +26,63 @@ So we have the following layout:
            |                    V
 | [int] [long*] [std::string] | [long] [long] [long] ...
 |                             |
-|           Base              | 
+|           MyType            | 
 ```
 
-We use the term `Base` to refer to the `fc::FlexibleClass<...>`.
+## Instantiating
 
-## Instantiating a Flexclass
-
-A Flexclass has dynamic size, so it cannot be allocated on the stack. To allocate one on the heap, use the `::make_unique` method:
+The `flexclass` aware type has dynamic size, so it cannot be allocated on the stack. To allocate one on the heap, use the `fc::make_unique` method:
 
 ```
-auto m = Message::make_unique(...);
+auto m = fc::make_unique<MyType>(...)(...);
 ```
 
 This returns a RAII enabled object, which will cleanup after itself when it's destroyed.
 
-If you prefer to manually manage this object, use `::make` and `fc::destroy`:
+If you prefer to manually manage this object, use `fc::make` and `fc::destroy`:
 ```
-auto* m = Message::make(...);
+auto* m = fc::make<MyType>(...)(...);
 fc::destroy(m);
 ```
 
 ## Arguments
 
-`make` and `make_unique` methods require one argument for each type declared in  `fc::FlexibleClass`.
-Each of those arguments will be passed to initalize an object of each type.
-
+`make` and `make_unique` methods provide a two step initialization and require the syntax:
 ```
-fc::FlexibleClass<std::string, float, fc::Array<long>, float>::make(
-    "passed to the string",
-    1.0,   // this goes to the first float
-    3000,  // This serves the handle
-    3.7);  // this goes to the second float
+    fc::make<T>(array arguments...)(T constructor arguments);
 ```
+In the first parenthesis the function expects the arguments for creating arrays.
+So if `fc_handles` returns `N` handles, then `make` expects `N` arguments.
 
-Handles are special in this case. The library will pick the argument destinated to handles (`3000` in this case) and create an array of such size.
-In this example, an array of `3000` `long` objects will be allocated after the `Base`.
-Finally, the `begin` and `end` pointers will be passed to the handle, so it can track this array.
+The arguments for the array creation is the size of the array, but more avanced forms of initialization are available. // TODO add link.
 
-## Accessing the data
-
-Every object in the structure can be accessed via their indices in the type list:
-
-```
-auto m = fc::FlexibleClass<int, fc::Array<long>, std::string>::make_unique(...);
-
-m->get<0>()    -> returns an int&
-m->begin<1>()  -> returns the pointer to the begin of the long array
-m->end<1>()    -> returns a pointer to the end of the long array
-m->get<2>()    -> returns a std::string&
-```
-
-It is recomended to use a namespace to tie names to each index:
-```
-namespace Message
-{
-    enum Members { Name, Age, Data };
-    using Type = fc::FlexibleBase<std::string, int, Foo[]>;
-}
-
-...
-
-auto name      = m->get<Message::Name>();
-auto age       = m->get<Message::Age>();
-auto dataBegin = m->->begin<Message::Data>();
-```
-
-Another alternative is to use a `FlexibleBase`.
-
-
-## FlexibleBase
-
-As noticed from the previous example, accessing elements via numbers can be hard to read. A solution is to use a `FlexibleBase` with an enumeration:
-
-```
-struct MyStruct : public fc::FlexibleBase<MyStruct, int, fc::Array<long>, std::string>
-{
-    enum { Age, Data, Name };
-    using FLB::FLB;
-};
-```
-
-This allows the user to:
-- Access members using the enumeration as indices: `m->get<Age>()`, `m->begin<Data>()`, `m->get<Name>()`
-- Define custom member functions.
-
+The second pair of parenthesis take the arguments to create the type `T`.
 
 # Provided Handles
 
 `Flexclass` provides a handful of handles so the user doesn't have to write them by hand.
 
-There are two types of handles:
-- `fc::handle::array`: Able to point just to the begin of the sequence of elements
-- `fc::handle::range`: Able to point to both begin and end.
+- `*Array` handles provide only the `begin` iterator for the object sequence
+- `*Range` handles provide both `begin`and `end`
 
 Available handles are:
 - `fc::Array<T>`: Contains one `T*` to indicate the begin of the object sequence
 - `fc::Range<T>`: Contains two `T*` to indicate both begin and end
 - `fc::AdjacentArray<T, int Idx = -1>`: Contains no data as it assumes its array is adjacent to the data from handle in `Idx`
-    - If `Idx` is `-1`, it assumes the begin of its array is after the Base
+    - If `Idx` is `-1`, it assumes the begin of its array is after the type.
 - `fc::AdjacentRange<T, int Idx = -1>`: Like `fc::AdjacentArray<T>` but contains a `T*` to also know the end of the object sequence
-- `T[]`: Automatically converted into a `fc::Array<T>` in case `T` is trivially-destructible, and `fc::Range<T>` otherwise
+
+Note that for `Adjacent*` handles to work, they take a pointer to the type on `begin` and `end` methods:
+```
+    struct Type
+    {
+        auto fc_handles() { return fc::make_tuple(&data); }
+        
+        auto begin() { return data.begin(this); }
+        
+        fc::AdjacentArray<char> data;
+    };
+```
 
 # Custom handles
 
@@ -165,55 +125,49 @@ struct NearAndSmallRange : fc::Handle<T> // I know my Range will be very close a
 }
 ```
 
-# Advanced initialization
-
-## Member initialization
-As mentioned before, the user must pass an argument for each type of the class. If the user desires to not initialize the non-handle member, the `fc::Default` object can be used:
-```
-auto m = fc::FlexibleClass<std::string, int>::make(fc::Default{}, fc::Default{});
-```
-
-In this scenario, the default constructor of the `std::string` will be called, and the  `int` **will be left uninitialized** as if it was declared with `int i;`.
-
-## Handle initialization
+# Handle initialization
 
 For each handle, the user is expected to pass a size of the array that will be allocated for it. Arrays are default initialized, but the user may use `fc::arg` to pass an input iterator that will be called to obtain initial values each element:
 
 ```
+struct Type
+{
+    auto fc_handles() { return fc::make_tuple(&data); }      
+    fc::Array<int> data;
+};
+
+// Create 10 ints
+auto m1 = fc::make<Type>(10)();
+
+// Create 10 ints
+auto m2 = fc::make<Type>(  fc::arg(10)  )();
+
+// Create 10 initialized ints
 std::vector<int> v {1,2,3,4,5,6,7,8,9,10};
-auto m = fc::FlexibleClass<fc::Array<int>>::make(fc::arg(10, v.begin()));
+auto m3 = fc::make<Type>(  fc::arg(10, v.begin())  )();
 ```
-In this scenario, the FlexibleClass will contain values `1` to `10` obtained from the iterator.
+In this last scenario, the array will contain values `1` to `10` obtained from the iterator.
 
 # Allocators
 
 Construction with custom allocators is also supported. However, `Flexclass` does not store the allocator in the structure like other data structures (`std::vector`, `std::map`, ... ).
 Generally there will be a main entity managing all flexclasses, so it knows which allocator to use. Also, adding the allocator as a member can be done over-the-hood, by the user.
 
-To allocate using a custom allocator, invoke `::make` with `fc::withAllocator` and your allocator as an argument:
+To allocate using a custom allocator, invoke `fc::make` with `fc::withAllocator` and your allocator in the array argument list:
 ```
-using FC = fc::FlexibleClass<int, std::string, long[], bool>;
+struct Type
+{
+    auto fc_handles() { return fc::make_tuple(&data); }      
+    fc::Array<int> data;
+};
 
 MyAllocator alloc;
-
-auto fclass = FC::make(fc::withAllocator, alloc, 1, "mystring", 200, true);
+auto fclass = fc::make<Type>(fc::withAllocator, alloc, 10)();
 ...
 fc::destroy(fclass, alloc);
-
 ```
-
-Notice the allocator will not be forwarded to subobjects (like `std::string`) but again, that can be done manually by the user.
-
 
 # Exception Guarantees
 
-`Flexclass` is well behaved with respect to lifetimes and exceptions. That means all objects created by it will be destroyed in the reverse order:
-
-```
-    auto m = fc::FlexibleClass<A, B, C[], D, E[]>::make(A{}, B{}, 2, D{}, 3);
-```
-In this cenario, constructors will be called in the following order:    `C0 C1 E0 E1 E2 A B D`
-
-When `fc::destroy` is called, destructors will be invoked in the order: `D B A E2 E1 E0 C1 C0`
-
+`Flexclass` is well behaved with respect to lifetimes and exceptions. That means all objects created by it will be destroyed in the reverse order, including the objects in arrays.
 If at any point during the construction of the FlexibleClass an exception is thrown, all objects that were fully created will be destroyed in the reverse order of construction.

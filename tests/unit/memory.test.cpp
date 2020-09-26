@@ -8,16 +8,17 @@
 
 TEST_CASE( "Allocate and destroy", "[memory]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, char[]>
+    struct Message
     {
-        enum Members {Header, Data};
-        using FLB::FLB;
+        auto fc_handles() { return fc::make_tuple(&data); }
+        std::string header;
+        fc::Array<char> data;
     };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + sizeof(char*) + numChars*sizeof(char);
 
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
+    auto r = fc::alloc::track([&] { return fc::make<Message>(numChars)("SmallMsg"); });
 
     CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
     CHECK(fc::alloc::s_freeCount == 0);
@@ -30,16 +31,17 @@ TEST_CASE( "Allocate and destroy", "[memory]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[memory]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, fc::Range<char>>
+    struct Message
     {
-        enum Members {Header, Data};
-        using FLB::FLB;
+        auto fc_handles() { return fc::make_tuple(&data); }
+        std::string header;
+        fc::Range<char> data;
     };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + 2*sizeof(char*) + numChars*sizeof(char);
 
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
+    auto r = fc::alloc::track([&] { return fc::make<Message>(numChars)("SmallMsg"); });
 
     CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
     CHECK(fc::alloc::s_freeCount == 0);
@@ -52,16 +54,17 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[memory]" )
 
 TEST_CASE( "Allocate and destroy but using an adjacent array", "[memory]" )
 {
-    struct Message : public fc::FlexibleBase<Message, std::string, fc::AdjacentArray<char>>
+    struct Message : fc::AdjacentArray<char>
     {
-        enum Members {Header, Data};
-        using FLB::FLB;
+        auto fc_handles() { return fc::make_tuple(&data()); }
+        std::string header;
+        fc::AdjacentArray<char>& data() { return *this; }
     };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + numChars*sizeof(char);
 
-    auto r = fc::alloc::track([&] { return Message::make("SmallMsg", numChars); });
+    auto r = fc::alloc::track([&] { return fc::make<Message>(numChars)("SmallMsg"); });
 
     CHECK(fc::alloc::s_userAllocdBytes == expectedSize);
     CHECK(fc::alloc::s_freeCount == 0);
@@ -70,36 +73,4 @@ TEST_CASE( "Allocate and destroy but using an adjacent array", "[memory]" )
 
     CHECK(fc::alloc::s_allocdBytes == 0);
     CHECK(fc::alloc::s_freeCount == 1);
-}
-
-
-TEST_CASE( "Using adjacent arrays", "[memory]" )
-{
-    struct Message : public fc::FlexibleBase<Message, char, fc::AdjacentArray<long>>
-    {
-        enum Members {Header, Data};
-        using FLB::FLB;
-    };
-
-    auto r = Message::make('\0', 1000);
-
-    *r->begin<Message::Data>() = 1;
-
-    fc::destroy(r);
-}
-
-TEST_CASE( "Manipulate a FlexibleArrayClass directly", "[memory]" )
-{
-    using Message = fc::FlexibleClass<char, long[], bool>;
-
-    auto r = Message::make('\0', 100, false);
-    r->get<0>() = 'a';
-    r->begin<1>()[0] = 120391409823;
-    r->get<2>() = true;
-
-    CHECK(r->get<0>() == 'a');
-    CHECK(r->begin<1>()[0] == 120391409823);
-    CHECK(r->get<2>() == true);
-
-    fc::destroy(r);
 }

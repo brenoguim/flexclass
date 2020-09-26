@@ -46,13 +46,13 @@ struct Array : Handle<T>
 
     void setLocation(T* begin, T* end) { m_begin = begin; }
 
-    template <class Base>
-    auto begin(const Base* ptr) const
+    template <class Base = void>
+    auto begin(const Base* ptr = nullptr) const
     {
         return m_begin;
     }
 
-    auto begin() const { return m_begin; }
+    // auto begin() const { return m_begin; }
 
     T* m_begin;
 };
@@ -112,7 +112,10 @@ struct AdjacentArray : Handle<T>
         if constexpr (El == -1)
             return aligner(ptr, 1).template get<T>();
         else
-            return aligner(ptr->template end<El>()).template get<T>();
+        {
+            auto e = ptr->fc_handles().template get<El>()->end(ptr);
+            return aligner(e).template get<T>();
+        }
     }
 };
 
@@ -150,14 +153,6 @@ struct AdjacentRange : Handle<T>
     }
 
     T* m_end;
-};
-
-/*! Customization point to convert a T[] into a proper handle
- */
-template <class T>
-struct ArraySelector<T[]>
-{
-    using type = std::conditional_t<std::is_trivially_destructible<T>::value, Array<T>, Range<T>>;
 };
 
 } // namespace fc

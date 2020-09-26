@@ -1,7 +1,6 @@
 set(UNIT_TEST_LIST
     basic
     shared_array_example
-    variant_array_example
     tuple
     memory_with_allocator
 )

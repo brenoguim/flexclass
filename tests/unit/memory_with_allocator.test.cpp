@@ -37,15 +37,19 @@ struct AllocTrack
 
 TEST_CASE( "Allocate and destroy", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, char[]>;
+    struct Message
+    {
+        auto fc_handles() { return fc::make_tuple(&data); }
+        std::string str;
+        fc::Array<char> data;
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + sizeof(char*) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto m = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto m = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
@@ -59,15 +63,19 @@ TEST_CASE( "Allocate and destroy", "[allocator]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, fc::Range<char>>;
+    struct Message
+    {
+        auto fc_handles() { return fc::make_tuple(&data); }
+        std::string str;
+        fc::Range<char> data;
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + 2*sizeof(char*) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto m = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto m = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
@@ -81,15 +89,19 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 
 TEST_CASE( "Allocate and destroy but using an adjacent array", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, fc::AdjacentArray<char>>;
+    struct Message : public fc::AdjacentArray<char>
+    {
+        auto fc_handles() { return fc::make_tuple(&data()); }
+        std::string str;
+        fc::AdjacentArray<char>& data() { return *this; }
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto r = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto r = fc::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);

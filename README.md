@@ -32,26 +32,31 @@ Multiple allocations can be costly and incur in memory fragmentation which reduc
 The same `Node` can be implemented with `Flexclass`:
 
 ```
-struct Node : fc::FlexibleBase<Node,
-                  /*Members:*/ std::size_t, void*, Node*[]>
+struct Node
 {
-    enum Members {Id, UserData, Links};
-    using FLB::FLB;
+    auto fc_handles() { return fc::make_tuple(&links); }
+
+    std::size_t      id;
+    void*            userData {nullptr};
+    fc::Array<Node*> links;
 };
 
 Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
 {
-    auto n = Node::make(id, /*user data*/nullptr, /*array size*/links.size());
-    std::copy(links.begin(), links.end(), n->begin<Node::Links>());
+    auto n = fc::make<Node>(links.size()) (id, nullptr);
+    std::copy(links.begin(), links.end(), n.links.begin());
     return n;
 }
 ```
 
+The required changes are:
+- Declare `fc_handles` method that returns the required handles
+- Declare `links` as `fc::Array<Node*>` which is a special handle for an array
+- Construct the object with the syntax `fc::make< T > ( array sizes ) ( T constructor arguments );`
+
 [See this example on Compiler Explorer](https://godbolt.org/z/Pcbroj)
 
-In this new version, members are declared as arguments of `fc::FlexibleBase`. The `Members` enum serves as a convience to allow: `m->get<Node::Id>()` , `m->begin<Node::Links>()`
-
-To build the layout, `Flexclass` inspects the member type list, finds `Node*[]` and understands that a `Node*` array must be attached to the allocation.
+To build the layout, `Flexclass` uses `fc_handles` to collect a list of array types to be built.
 
 The layout of the `Node` is:
 ```
@@ -68,7 +73,7 @@ Now a single allocation is performed to store both the `Node` and the array of `
 
 One can reduce the size even more by using the fact that the `Node*` array will always be at the end of the `Node`:
 ```
-struct Node : public fc::FlexibleBase<Node, std::size_t, void*, fc::AdjacentArray<Node*>>
+fc::AdjacentArray<Node*> links;
 ```
 
 Which would generate the following compact layout:
@@ -82,7 +87,15 @@ Which would generate the following compact layout:
 
 `Flexclass` is not limited to one array, so the following declaration is perfectly valid:
 ```
-struct MyType : public fc::FlexibleBase<MyType, int[], std::string, std::string[], bool>
+struct MyType
+{
+    auto fc_handles() { return fc::make_tuple(&a, &c); }
+
+    fc::Array<int> a;
+    std::string b;
+    fc::Range<string> c;
+    bool;
+};
 ```
 
 Which will generate the following layout:
@@ -100,24 +113,7 @@ Which will generate the following layout:
 |                       MyType                            |
 ```
 
-Notice the layout contains an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `Message`.
-
-Storing the size is sometimes useful, so the user can force the type to hold the begin/end with the `fc::Range` helper:
-
-```
-struct Message : public fc::FlexibleBase<Message, std::size_t, fc::Range<char>>
-```
-
-In this case, there will be an `end` pointer to the `char` array too, giving the user method `end()`:
-```
-auto b = m->begin<Message::Data>();
-auto e = m->end<Message::Data>();
-
-std::cout << "Size: " << e - b << std::endl;
-
-for (auto it = b; it != e; ++it) std::cout << (int) c << std::endl;
-```
-
+Notice that `fc::Range` has an `end` pointer for the `std::string` array. Since `std::string` is non-trivially-destructible, `Flexclass` needs to iterate on the array to call destructors when destroying the `MyType`.
 
 ## Feature summary
 
@@ -129,23 +125,11 @@ for (auto it = b; it != e; ++it) std::cout << (int) c << std::endl;
 
 Adjacent handles deduce their `begin` from another element:
 - By default, they are adjacent to the base
-- They can also be adjacent to another array passed as second template argument:
-
-```
-enum Members                  {RefCount,  Data1,                   Data2 };
-using Impl = fc::FlexibleClass<long,      fc::AdjacentRange<long>, fc::AdjacentArray<char, Data1>;
-```
-
-In this case:
-- `Data1` array uses the end of the base to reference itself
-- `Data2` array uses the `end` of `Data1` array to reference itself.
+- They can also be adjacent to another array. See the [user guide](../master/UserGuide.md) for the syntax.
 
 Cost:
 - `AdjacentArray<T>` cost 0 pointers
 - `AdjacentRange<T>` cost 1 pointer
-
-### Raw `T[]`
-- `T[]` will translate to `Array<T>` if `T` is trivially-destructible and `Range<T>` otherwise
 
 ## Cool Applications
 
@@ -158,45 +142,36 @@ template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
 {
-    enum Members                  {RefCount, Data};
-    using Impl = fc::FlexibleClass<unsigned, T[]>;
+    struct Impl
+    {
+        auto fc_handles() { return fc::make_tuple(&data); }
+        unsigned refCount;
+        fc::Array<T> data;
+    };
 
   public:
     /* Interesting public API */
-    static SharedArray make(std::size_t len) { return {Impl::make(/*num references*/1, len)}; }
+    static SharedArray make(std::size_t len) { return {fc::make<Impl>(len)(/*num references*/1u)}; }
 
-    decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
-    decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) { return m_data->data.begin()[i]; }
+    decltype(auto) operator[](std::size_t i) const { return m_data->data.begin()[i]; }
 
-    /* Boilerplate special member functions */
+    auto use_count() const { return m_data ? m_data->refCount : 0; }
+
+    /* See full example for special member functions */
   private:
     SharedArray(Impl* data) : m_data(data) {}
-    void incr() { if (m_data) m_data->template get<RefCount>()++; }
-    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::destroy(m_data); }
+    void incr() { if (m_data) m_data->refCount++; }
+    void decr() { if (m_data && m_data->refCount-- == 1) fc::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 ```
 
-Notice this implementation can be easily tweaked to use an atomic reference counter, or to store the size of the array:
-```
-    enum Members                   {RefCount,             Size,     Data};
-    using Impl = fc::FlexibleClass<std::atomic<unsigned>, unsigned, T[]>;
-    ...
-```
 [See the full example here](../master/tests/unit/shared_array_example.test.cpp)
-
-
-### Variant Array
-
-TODO: Add a description for this example
-
-[See the full example here](../master/tests/unit/variant_array_example.test.cpp)
 
 
 ## TODO/Known issues
 - Provide ways to convert from a Adjacent member to base
-    - `convert<int element>(T*) -> fc::FlexibleClass<int, fc::AdjacentArray<T>>*`
-- Add performance tests
 - Add range-for support for AdjacentRanges.
 - Use static asserts to provide better diagnostics on common mistakes:
     - Passing the wrong number of parameters
