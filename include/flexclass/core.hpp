@@ -377,8 +377,7 @@ template <class FC, class... AArgs>
 auto make_unique(AArgs&&... aArgs)
 {
     return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
-        return fc::UniquePtr<FC>(
-            fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
+        return fc::UniquePtr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
     };
 }
 
