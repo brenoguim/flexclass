@@ -54,7 +54,7 @@ fc::destroy(m);
 In the first parenthesis the function expects the arguments for creating arrays.
 So if `fc_handles` returns `N` handles, then `make` expects `N` arguments.
 
-The arguments for the array creation is the size of the array, but more avanced forms of initialization are available. // TODO add link.
+The arguments for the array creation is the size of the array, but [more avanced forms of initialization](../master/UserGuide.md#handle-initialization) are available.
 
 The second pair of parenthesis take the arguments to create the type `T`.
 
