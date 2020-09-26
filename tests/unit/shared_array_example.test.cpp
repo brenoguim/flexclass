@@ -7,17 +7,23 @@ template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
 {
-    enum Members {RefCount, Data};
-    using Impl = fc::FlexibleClass<unsigned, T[]>;
+    struct Impl
+    {
+        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        unsigned refCount;
+        std::conditional_t<std::is_trivially_destructible_v<T>,
+                          fc::Array<T>,
+                          fc::Range<T>> data;
+    };
 
   public:
     /* Interesting public API */
-    static SharedArray make(std::size_t len) { return {Impl::make(/*num references*/1, len)}; }
+    static SharedArray make(std::size_t len) { return {fc::v2::make<Impl>(len)(/*num references*/1u)}; }
 
-    decltype(auto) operator[](std::size_t i) { return m_data->template begin<Data>()[i]; }
-    decltype(auto) operator[](std::size_t i) const { return m_data->template begin<Data>()[i]; }
+    decltype(auto) operator[](std::size_t i) { return m_data->data.begin()[i]; }
+    decltype(auto) operator[](std::size_t i) const { return m_data->data.begin()[i]; }
 
-    auto use_count() const { return m_data ? m_data->template get<RefCount>() : 0; }
+    auto use_count() const { return m_data ? m_data->refCount : 0; }
 
     /* Boilerplate */
     SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
@@ -27,8 +33,8 @@ class SharedArray<T[]>
     ~SharedArray() { decr(); }
   private:
     SharedArray(Impl* data) : m_data(data) {}
-    void incr() { if (m_data) m_data->template get<RefCount>()++; }
-    void decr() { if (m_data && m_data->template get<RefCount>()-- == 1) Impl::destroy(m_data); }
+    void incr() { if (m_data) m_data->refCount++; }
+    void decr() { if (m_data && m_data->refCount-- == 1) fc::v2::destroy(m_data); }
     Impl* m_data {nullptr};
 };
 
