@@ -25,7 +25,7 @@ function(make_test_lib _target_name _suffix)
     target_include_directories(${target_name} PUBLIC ../../external/catch2/)
     add_test(
       NAME ${target_name}
-      COMMAND env ASAN_OPTIONS=print_stacktrace=1:halt_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./${target_name} -o report.xml -r junit)
+      COMMAND env ASAN_OPTIONS=print_stacktrace=1:halt_on_error=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./${target_name} -o report.xml)
 endfunction()
 
 foreach(TARGET_NAME IN LISTS UNIT_TEST_LIST)
