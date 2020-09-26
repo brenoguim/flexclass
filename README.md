@@ -68,7 +68,7 @@ Now a single allocation is performed to store both the `Node` and the array of `
 
 One can reduce the size even more by using the fact that the `Node*` array will always be at the end of the `Node`:
 ```
-struct Message : public fc::FlexibleBase<Message, std::size_t, void*, fc::AdjacentArray<Node*>>
+struct Node : public fc::FlexibleBase<Node, std::size_t, void*, fc::AdjacentArray<Node*>>
 ```
 
 Which would generate the following compact layout:
