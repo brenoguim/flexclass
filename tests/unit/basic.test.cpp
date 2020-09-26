@@ -443,3 +443,34 @@ namespace
         CHECK( IncrOnDefaultCtor::cnt == 2 );
     }
 }
+
+
+namespace {
+
+struct Node
+{
+    Node(std::size_t id) {}
+
+    std::size_t id;
+    std::size_t numLinks;
+    bool visited;
+    fc::Array<Node*> links;
+    fc::Array<int> ints;
+
+    auto fc_arrays() {
+        return fc::v2::make_tuple(&links, &ints);
+    }
+};
+}
+
+TEST_CASE( "New ergonomics", "[experimental]" )
+{
+    std::vector<int> v;
+    v.resize(200);
+    std::iota(v.begin(), v.end(), 0);
+    auto n = fc::v2::make<Node>(100, fc::arg(200, v.begin())) (10);
+    *n->links.begin() = n;
+    CHECK( std::equal(v.begin(), v.end(), n->ints.begin()) );
+    fc::v2::destroy(n);
+}
+

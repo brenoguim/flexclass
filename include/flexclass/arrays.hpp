@@ -46,13 +46,13 @@ struct Array : Handle<T>
 
     void setLocation(T* begin, T* end) { m_begin = begin; }
 
-    template <class Base>
-    auto begin(const Base* ptr) const
+    template <class Base = void>
+    auto begin(const Base* ptr = nullptr) const
     {
         return m_begin;
     }
 
-    auto begin() const { return m_begin; }
+    //auto begin() const { return m_begin; }
 
     T* m_begin;
 };
