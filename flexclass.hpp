@@ -479,6 +479,7 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 } // namespace fc
 #endif
 #include <cassert>
+#include <iostream>
 #include <new>
 #include <type_traits>
 namespace fc
@@ -490,6 +491,7 @@ namespace fc
 template <class T>
 struct Handle
 {
+    Handle() = default;
     /*! Workaround to allow the handle to be created
      *  from the argument that was passed from the user
      *  The argument (likely the array size) will be
@@ -535,6 +537,11 @@ template <class InputIt>
 auto arg(std::size_t size, InputIt it)
 {
     return Arg<InputIt>{size, it};
+}
+template <class InputIt>
+auto arg(Arg<InputIt> a)
+{
+    return a;
 }
 /*! Placeholder type and values to call ::make to indicate the first
  * argument is an allocator
@@ -626,13 +633,6 @@ struct ArrayBuilder
     T* m_begin{nullptr};
     T* m_end{nullptr};
 };
-//! Transforms type T into a suitable handle. Used mainly to convert
-// T[] to Array<T> or Range<T>
-template <class T>
-struct ArraySelector
-{
-    using type = T;
-};
 //! Trait to check if a given type is an ArrayBuilder
 template <class T>
 struct isArrayBuilder : std::false_type
@@ -653,8 +653,6 @@ struct isHandle<T, typename void_<typename T::fc_handle_type>::type> : std::true
 };
 /*! Finds handle types in the types passed by the user
  * and convert them either to "Ignore" or "ArrayBuilder"
- * TODO: It should use ArraySelector instead of hard coded
- * T[]
  */
 template <class T, class = void>
 struct ArrayBuildersConverter
@@ -662,189 +660,145 @@ struct ArrayBuildersConverter
     using type = Ignore;
 };
 template <class T>
-struct ArrayBuildersConverter<T[], void>
-{
-    using type = ArrayBuilder<T>;
-};
-template <class T>
 struct ArrayBuildersConverter<T, typename void_<typename isHandle<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::fc_handle_type>;
 };
-/*! Finds handle types in the types passed by the user
- * and query them for the alignment of T
- * TODO: It should use ArraySelector instead of hard coded
- * T[]
- */
-template <class T, class = void>
-struct GetAlignmentRequirement
+template <class... Args>
+auto make_tuple(Args&&... args)
 {
-    static constexpr auto value = alignof(T);
-};
-template <class T>
-struct GetAlignmentRequirement<T[], void>
-{
-    static constexpr auto value = alignof(T);
-};
-template <class T>
-struct GetAlignmentRequirement<T, typename void_<typename isHandle<T>::enable>::type>
-{
-    static constexpr std::size_t value = alignof(typename T::fc_handle_type);
-};
-template <class... Types>
-struct CollectAlignment
-{
-    static constexpr auto value =
-        naiveMax({std::size_t(1), GetAlignmentRequirement<Types>::value...});
-};
-template <class Derived, class... T>
-class alignas(CollectAlignment<T...>::value) FlexibleBase
-    : public fc::tuple<typename ArraySelector<T>::type...>
-{
-  private:
-    using Base = fc::tuple<typename ArraySelector<T>::type...>;
-    using Base::Base;
-  protected:
-    using FLB = FlexibleBase;
-    ~FlexibleBase() = default;
-  public:
-    static constexpr auto numMembers() { return Base::Size; }
-    template <auto e>
-    decltype(auto) get()
-    {
-        return get_element<e>(*this);
-    }
-    template <auto e>
-    decltype(auto) get() const
-    {
-        return get_element<e>(*this);
-    }
-    template <auto e>
-    decltype(auto) begin() const
-    {
-        return get_element<e>(*this).begin(this);
-    }
-    template <auto e>
-    decltype(auto) end() const
-    {
-        return get_element<e>(*this).end(this);
-    }
-    template <auto e>
-    decltype(auto) begin()
-    {
-        return get_element<e>(*this).begin(this);
-    }
-    template <auto e>
-    decltype(auto) end()
-    {
-        return get_element<e>(*this).end(this);
-    }
-    struct DestroyFn
-    {
-        void operator()(Derived* ptr) const { Derived::destroy(ptr); }
-    };
-    using UniquePtr = unique_ptr<Derived, DestroyFn>;
-    template <class... Args>
-    static auto make_unique(Args&&... args)
-    {
-        return UniquePtr(make(std::forward<Args>(args)...));
-    }
-    template <class... Args>
-    static auto make(Args&&... args)
-    {
-        NewDeleteAllocator alloc;
-        return makeWithAllocator(alloc, std::forward<Args>(args)...);
-    }
-    template <class Alloc, class... Args>
-    static auto make(WithAllocator, Alloc& alloc, Args&&... args)
-    {
-        return makeWithAllocator(alloc, std::forward<Args>(args)...);
-    }
-    template <class Alloc, class... Args>
-    static auto makeWithAllocator(Alloc& alloc, Args&&... args)
-    {
-        using ArrayBuilders = fc::tuple<typename ArrayBuildersConverter<T>::type...>;
-        std::size_t numBytesForArrays = 0;
-        {
-            for_each_in_tuple(ArrayBuilders(), [&](const auto& element, auto idx) mutable {
-                using Element = remove_cvref_t<decltype(element)>;
-                using Idx = decltype(idx);
-                if constexpr (isArrayBuilder<Element>::value)
-                {
-                    numBytesForArrays += element.numRequiredBytes(
-                        sizeof(Derived) + numBytesForArrays, pickFromPack<Idx::value>(args...));
-                }
-            });
-        }
-        auto memBuffer = unique_ptr<void, DeleteFn<Derived, Alloc>>(
-            alloc.allocate(sizeof(Derived) + numBytesForArrays), alloc);
-        auto ret = new (memBuffer.get()) Derived(std::forward<Args>(args)...);
-        memBuffer.get_deleter().m_objectCreated = true;
-        // Start creating arrays right after the Derived object
-        std::byte* arrayBuffer = reinterpret_cast<std::byte*>(ret + 1);
-        ArrayBuilders arrayBuilders;
-        for_each_in_tuple(arrayBuilders, [&](auto& element, auto idx) mutable {
-            using Element = remove_cvref_t<decltype(element)>;
-            using Idx = decltype(idx);
-            if constexpr (isArrayBuilder<Element>::value)
-            {
-                arrayBuffer = element.buildArray(
-                    arrayBuffer, pickFromPack<Idx::value>(std::forward<Args>(args)...));
-            }
-        });
-        for_each_zipped<sizeof...(T)>(*ret, arrayBuilders, [](auto& handle, auto& arrayBuilder) {
-            using ArrBuildersElement = remove_cvref_t<decltype(arrayBuilder)>;
-            if constexpr (isArrayBuilder<ArrBuildersElement>::value)
-            {
-                handle.setLocation(arrayBuilder.m_begin, arrayBuilder.m_end);
-                arrayBuilder.release();
-            }
-        });
-        memBuffer.release();
-        return ret;
-    }
-    static void destroy(const Derived* p)
-    {
-        NewDeleteAllocator alloc;
-        destroyWithAllocator(p, alloc);
-    }
-    template <class Alloc>
-    static void destroy(const Derived* p, Alloc&& alloc)
-    {
-        destroyWithAllocator(p, alloc);
-    }
-    template <class Alloc>
-    static void destroyWithAllocator(const Derived* p, Alloc&& alloc)
-    {
-        if (!p)
-            return;
-        reverse_for_each_in_tuple(*p, [p](auto& u, auto idx) {
-            using U = remove_cvref_t<decltype(u)>;
-            if constexpr (isHandle<U>::value)
-                if constexpr (!std::is_trivially_destructible<typename U::fc_handle_type>::value)
-                {
-                    reverseDestroy(u.begin(p), u.end(p));
-                }
-        });
-        p->~Derived();
-        alloc.deallocate(const_cast<Derived*>(p));
-    }
-};
-template <class T>
-void destroy(const T* p)
-{
-    T::destroy(p);
-}
-template <class T, class Alloc>
-void destroy(const T* p, Alloc&& alloc)
-{
-    T::destroy(p, alloc);
+    return fc::tuple<std::remove_reference_t<Args>...>(std::forward<Args>(args)...);
 }
 template <class... Args>
-struct FlexibleClass : public FlexibleBase<FlexibleClass<Args...>, Args...>
+auto args(Args&&... args)
 {
-    using FlexibleBase<FlexibleClass<Args...>, Args...>::FlexibleBase;
+    return ::fc::make_tuple(fc::arg(std::forward<Args>(args))...);
+}
+template <int I, class Fn, class First, class... T>
+void for_each_constexpr_impl2(Fn&& fn)
+{
+    fn(static_cast<First*>(nullptr), std::integral_constant<int, I>());
+    if constexpr (sizeof...(T) > 0)
+        for_each_constexpr_impl2<I + 1, Fn, T...>(fn);
+}
+template <class Fn, class... T>
+void for_each_constexpr_impl(Fn&& fn, fc::tuple<T...>*)
+{
+    if constexpr (sizeof...(T) > 0)
+        for_each_constexpr_impl2<0, Fn, T...>(fn);
+}
+template <class Tuple, class Fn>
+void for_each_constexpr(Fn&& fn)
+{
+    for_each_constexpr_impl(fn, static_cast<Tuple*>(nullptr));
+}
+template <class Handles>
+struct Handles2ArrayBuilders;
+template <class... T>
+struct Handles2ArrayBuilders<fc::tuple<T*...>>
+{
+    using type = fc::tuple<ArrayBuilder<typename T::fc_handle_type>...>;
 };
+template <class FC, class Alloc, class AArgs, class... ClassArgs>
+auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
+{
+    using Handles = decltype(std::declval<FC>().fc_handles());
+    std::size_t numBytesForArrays = 0;
+    for_each_constexpr<Handles>([&](auto* type, auto idx) {
+        using Element = remove_cvref_t<decltype(**type)>;
+        using Idx = decltype(idx);
+        using T = typename Element::fc_handle_type;
+        ArrayBuilder<T> arrBuilder;
+        numBytesForArrays += arrBuilder.numRequiredBytes(sizeof(FC) + numBytesForArrays,
+                                                         aArgs.template get<Idx::value>());
+    });
+    auto memBuffer = unique_ptr<void, DeleteFn<FC, Alloc>>(
+        alloc.allocate(sizeof(FC) + numBytesForArrays), alloc);
+    FC* ret;
+    if constexpr (std::is_aggregate_v<FC>)
+        ret = new (memBuffer.get()) FC{std::forward<ClassArgs>(cArgs)...};
+    else
+        ret = new (memBuffer.get()) FC(std::forward<ClassArgs>(cArgs)...);
+    memBuffer.get_deleter().m_objectCreated = true;
+    // Start creating arrays right after the FC object
+    std::byte* arrayBuffer = reinterpret_cast<std::byte*>(ret + 1);
+    using ArrayBuilders = typename Handles2ArrayBuilders<Handles>::type;
+    ArrayBuilders arrayBuilders;
+    for_each_in_tuple(arrayBuilders, [&](auto& arrayBuilder, auto idx) mutable {
+        using Idx = decltype(idx);
+        arrayBuffer = arrayBuilder.buildArray(arrayBuffer, aArgs.template get<Idx::value>());
+    });
+    auto&& handles = ret->fc_handles();
+    for_each_in_tuple(arrayBuilders, [&](auto& arrayBuilder, auto idx) mutable {
+        using Idx = decltype(idx);
+        handles.template get<Idx::value>()->setLocation(arrayBuilder.m_begin, arrayBuilder.m_end);
+        arrayBuilder.release();
+    });
+    memBuffer.release();
+    return ret;
+}
+template <class FC, class Alloc>
+void destroyWithAllocator(Alloc& alloc, FC* p)
+{
+    if (!p)
+        return;
+    auto&& handles = p->fc_handles();
+    reverse_for_each_in_tuple(handles, [p](auto* handle, auto idx) {
+        using Handle = remove_cvref_t<decltype(*handle)>;
+        if constexpr (!std::is_trivially_destructible<typename Handle::fc_handle_type>::value)
+        {
+            reverseDestroy(handle->begin(p), handle->end(p));
+        }
+    });
+    p->~FC();
+    alloc.deallocate(const_cast<FC*>(p));
+}
+template <class FC, class AArgs, class... ClassArgs>
+auto makeInternal(AArgs&& aArgs, ClassArgs&&... cArgs)
+{
+    NewDeleteAllocator alloc;
+    return makeWithAllocator<FC>(alloc, std::forward<AArgs>(aArgs),
+                                 std::forward<ClassArgs>(cArgs)...);
+}
+template <class FC>
+auto destroy(FC* ptr)
+{
+    NewDeleteAllocator alloc;
+    return destroyWithAllocator<FC>(alloc, ptr);
+}
+template <class FC, class Alloc>
+auto destroy(FC* ptr, Alloc& alloc)
+{
+    return destroyWithAllocator<FC>(alloc, ptr);
+}
+template <class FC, class... AArgs>
+auto make(AArgs&&... aArgs)
+{
+    return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
+        return fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...);
+    };
+}
+template <class FC, class Alloc, class... AArgs>
+auto make(WithAllocator, Alloc& alloc, AArgs&&... aArgs)
+{
+    return [a = fc::args(aArgs...), &alloc](auto&&... cArgs) mutable {
+        return fc::makeWithAllocator<FC>(alloc, a, std::forward<decltype(cArgs)>(cArgs)...);
+    };
+}
+template <class T>
+struct DestroyFn
+{
+    void operator()(T* t) { fc::destroy(t); }
+};
+template <class T>
+using UniquePtr = fc::unique_ptr<T, fc::DestroyFn<T>>;
+template <class FC, class... AArgs>
+auto make_unique(AArgs&&... aArgs)
+{
+    return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
+        return fc::UniquePtr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
+    };
+}
 } // namespace fc
 #endif // FC_FLEXCLASS_CORE_HPP
 /*! Contains builtin handle implementations for common applications
@@ -886,12 +840,12 @@ struct Array : Handle<T>
 {
     using Handle<T>::Handle;
     void setLocation(T* begin, T* end) { m_begin = begin; }
-    template <class Base>
-    auto begin(const Base* ptr) const
+    template <class Base = void>
+    auto begin(const Base* ptr = nullptr) const
     {
         return m_begin;
     }
-    auto begin() const { return m_begin; }
+    // auto begin() const { return m_begin; }
     T* m_begin;
 };
 /*! Uses two pointers to store the location of the first T
@@ -941,7 +895,10 @@ struct AdjacentArray : Handle<T>
         if constexpr (El == -1)
             return aligner(ptr, 1).template get<T>();
         else
-            return aligner(ptr->template end<El>()).template get<T>();
+        {
+            auto e = ptr->fc_handles().template get<El>()->end(ptr);
+            return aligner(e).template get<T>();
+        }
     }
 };
 /*! Uses another handle index to derivate the
@@ -974,13 +931,6 @@ struct AdjacentRange : Handle<T>
         return m_end;
     }
     T* m_end;
-};
-/*! Customization point to convert a T[] into a proper handle
- */
-template <class T>
-struct ArraySelector<T[]>
-{
-    using type = std::conditional_t<std::is_trivially_destructible<T>::value, Array<T>, Range<T>>;
 };
 } // namespace fc
 #endif // FC_FLEXCLASS_ARRAYS_HPP
