@@ -82,7 +82,7 @@ Which would generate the following compact layout:
 
 `Flexclass` is not limited to one array, so the following declaration is perfectly valid:
 ```
-struct Message : public fc::FlexibleBase<Message, int[], std::string, std::string[], bool>
+struct MyType : public fc::FlexibleBase<MyType, int[], std::string, std::string[], bool>
 ```
 
 Which will generate the following layout:
