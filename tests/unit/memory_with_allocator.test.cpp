@@ -37,21 +37,25 @@ struct AllocTrack
 
 TEST_CASE( "Allocate and destroy", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, char[]>;
+    struct Message
+    {
+        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        std::string str;
+        fc::Array<char> data;
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + sizeof(char*) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto m = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto m = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::destroy(m, alloc);
+    fc::v2::destroy(m, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);
@@ -59,21 +63,25 @@ TEST_CASE( "Allocate and destroy", "[allocator]" )
 
 TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, fc::Range<char>>;
+    struct Message
+    {
+        auto fc_handles() { return fc::v2::make_tuple(&data); }
+        std::string str;
+        fc::Range<char> data;
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + 2*sizeof(char*) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto m = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto m = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::destroy(m, alloc);
+    fc::v2::destroy(m, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);
@@ -81,21 +89,25 @@ TEST_CASE( "Allocate and destroy but forcing sized char", "[allocator]" )
 
 TEST_CASE( "Allocate and destroy but using an adjacent array", "[allocator]" )
 {
-    enum Members {Header, Data};
-    using Message = fc::FlexibleClass<std::string, fc::AdjacentArray<char>>;
+    struct Message : public fc::AdjacentArray<char>
+    {
+        auto fc_handles() { return fc::v2::make_tuple(&data()); }
+        std::string str;
+        fc::AdjacentArray<char>& data() { return *this; }
+    };
 
     auto numChars = 1000;
     auto expectedSize = sizeof(std::string) + numChars*sizeof(char);
 
     AllocTrack alloc;
 
-    auto r = Message::make(fc::withAllocator, alloc, "SmallMsg", numChars);
+    auto r = fc::v2::make<Message>(fc::withAllocator, alloc, numChars)("SmallMsg");
 
     CHECK(alloc.m_allocd == expectedSize);
     CHECK(alloc.m_freeCount == 0);
 
     alloc.resetCounters();
-    fc::destroy(r, alloc);
+    fc::v2::destroy(r, alloc);
 
     CHECK(alloc.m_allocd == 0);
     CHECK(alloc.m_freeCount == 1);

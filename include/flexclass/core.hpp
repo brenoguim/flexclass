@@ -564,10 +564,22 @@ auto destroy(FC* ptr)
     return destroyWithAllocator<FC>(alloc, ptr);
 }
 
+template<class FC, class Alloc>
+auto destroy(FC* ptr, Alloc& alloc)
+{
+    return destroyWithAllocator<FC>(alloc, ptr);
+}
+
 template<class FC, class... AArgs>
 auto make(AArgs&&... aArgs)
 {
     return [a = fc::v2::args(aArgs...)] (auto&&... cArgs) mutable { return fc::v2::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...); };
+}
+
+template<class FC, class Alloc, class... AArgs>
+auto make(WithAllocator, Alloc& alloc, AArgs&&... aArgs)
+{
+    return [a = fc::v2::args(aArgs...), &alloc] (auto&&... cArgs) mutable { return fc::v2::makeWithAllocator<FC>(alloc, a, std::forward<decltype(cArgs)>(cArgs)...); };
 }
 
 template<class T> struct DestroyFn { void operator()(T* t) { fc::v2::destroy(t); } };
