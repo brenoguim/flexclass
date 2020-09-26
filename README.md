@@ -43,7 +43,7 @@ struct Node
 
 Node* makeGraphNode(std::size_t id, const std::vector<Node*>& links)
 {
-    auto n = fc::make<Node>(links.size()) (id, nullptr);
+    auto n = fc::make<Node>(links.size()) (id);
     std::copy(links.begin(), links.end(), n.links.begin());
     return n;
 }
