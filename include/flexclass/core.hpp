@@ -463,7 +463,8 @@ void for_each_constexpr_impl2(Fn&& fn)
 template<class Fn, class... T>
 void for_each_constexpr_impl(Fn&& fn, fc::tuple<T...>*)
 {
-    for_each_constexpr_impl2<0, Fn, T...>(fn);
+    if constexpr (sizeof...(T) > 0)
+        for_each_constexpr_impl2<0, Fn, T...>(fn);
 }
 
 template<class Tuple, class Fn>
@@ -483,7 +484,7 @@ struct Handles2ArrayBuilders<fc::tuple<T*...>>
 template<class FC, class Alloc, class AArgs, class... ClassArgs>
 auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
 {
-    using Handles = decltype(std::declval<FC>().fc_arrays());
+    using Handles = decltype(std::declval<FC>().fc_handles());
 
     std::size_t numBytesForArrays = 0;
     for_each_constexpr<Handles>(
@@ -501,7 +502,12 @@ auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
     auto memBuffer = unique_ptr<void, DeleteFn<FC, Alloc>>(
         alloc.allocate(sizeof(FC) + numBytesForArrays), alloc);
 
-    auto ret = new (memBuffer.get()) FC(std::forward<ClassArgs>(cArgs)...);
+    FC* ret;
+    if constexpr (std::is_aggregate_v<FC>)
+       ret = new (memBuffer.get()) FC{std::forward<ClassArgs>(cArgs)...};
+    else
+       ret = new (memBuffer.get()) FC(std::forward<ClassArgs>(cArgs)...);
+
     memBuffer.get_deleter().m_objectCreated = true;
 
     // Start creating arrays right after the FC object
@@ -516,7 +522,7 @@ auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
             arrayBuffer, aArgs.template get<Idx::value>());
     });
 
-    auto&& handles = ret->fc_arrays();
+    auto&& handles = ret->fc_handles();
     for_each_in_tuple(arrayBuilders, [&](auto& arrayBuilder, auto idx) mutable {
         using Idx = decltype(idx);
         handles.template get<Idx::value>()->setLocation(arrayBuilder.m_begin, arrayBuilder.m_end);
@@ -532,12 +538,12 @@ void destroyWithAllocator(Alloc& alloc, FC* p)
 {
     if (!p)
         return;
-    auto&& handles = p->fc_arrays();
+    auto&& handles = p->fc_handles();
     reverse_for_each_in_tuple(handles, [p](auto* handle, auto idx) {
         using Handle  = remove_cvref_t<decltype(*handle)>;
         if constexpr (!std::is_trivially_destructible<typename Handle::fc_handle_type>::value)
         {
-            reverseDestroy(handle.begin(p), handle.end(p));
+            reverseDestroy(handle->begin(p), handle->end(p));
         }
     });
     p->~FC();
@@ -562,6 +568,16 @@ template<class FC, class... AArgs>
 auto make(AArgs&&... aArgs)
 {
     return [a = fc::v2::args(aArgs...)] (auto&&... cArgs) mutable { return fc::v2::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...); };
+}
+
+template<class T> struct DestroyFn { void operator()(T* t) { fc::v2::destroy(t); } };
+
+template<class T> using UniquePtr = fc::unique_ptr<T, fc::v2::DestroyFn<T>>;
+
+template<class FC, class... AArgs>
+auto make_unique(AArgs&&... aArgs)
+{
+    return [a = fc::v2::args(aArgs...)] (auto&&... cArgs) mutable { return fc::v2::UniquePtr<FC>(fc::v2::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...)); };
 }
 
 }
