@@ -35,20 +35,29 @@ namespace nofc
 
 namespace withfc
 {
-    struct Node : public fc::FlexibleBase<Node, std::size_t, std::size_t, bool, fc::AdjacentArray<Node*>>
+    struct Node
     {
-        using FLB::FLB;
-        enum {Id, NumLinks, Visited, Links};
+        auto fc_handles() { return fc::v2::make_tuple(&links); }
+
+        std::size_t id;
+        std::size_t numLinks;
+        bool visited;
+        fc::AdjacentArray<Node*> links;
+
+        static auto make_unique(std::size_t id, std::size_t numLinks, bool visited, std::size_t size)
+        {
+            return fc::v2::make_unique<Node>(size)(id, numLinks, visited);
+        }
     };
 
-    auto& getVisited(Node* n) { return n->get<Node::Visited>(); }
-    auto  getNumLinks(Node* n) { return n->get<Node::NumLinks>(); }
-    auto  getLinks(Node* n) { return n->begin<Node::Links>(); }
+    auto& getVisited(Node* n) { return n->visited; }
+    auto  getNumLinks(Node* n) { return n->numLinks; }
+    auto  getLinks(Node* n) { return n->links.begin(n); }
 
     struct Dag
     {
         using N = Node;
-        std::vector<Node::UniquePtr> nodes;
+        std::vector<fc::v2::UniquePtr<Node>> nodes;
     };
 }
 
@@ -130,19 +139,19 @@ TEST_CASE( "Test basic operations)", "[dag]")
 
     BENCHMARK("Sum all ids on withfc graph") {
         std::size_t sum = 0;
-        for (auto& n : withfcDag.nodes) sum += n->get<withfc::Node::Id>();
+        for (auto& n : withfcDag.nodes) sum += n->id;
         return sum;
     };
 
     BENCHMARK("Sum all link ptrs on nofc graph") {
         std::size_t sum = 0;
-        for (auto& n : nofcDag.nodes) sum += (std::size_t)n->links.get();
+        for (auto& n : nofcDag.nodes) sum += (std::uintptr_t) getLinks(n.get());
         return sum;
     };
 
     BENCHMARK("Sum all link ptrs on withfc graph") {
         std::size_t sum = 0;
-        for (auto& n : withfcDag.nodes) sum += (std::size_t)n->begin<withfc::Node::Links>();
+        for (auto& n : withfcDag.nodes) sum += (std::uintptr_t) getLinks(n.get());
         return sum;
     };
 }

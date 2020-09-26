@@ -186,13 +186,6 @@ Notice this implementation can be easily tweaked to use an atomic reference coun
 [See the full example here](../master/tests/unit/shared_array_example.test.cpp)
 
 
-### Variant Array
-
-TODO: Add a description for this example
-
-[See the full example here](../master/tests/unit/variant_array_example.test.cpp)
-
-
 ## TODO/Known issues
 - Provide ways to convert from a Adjacent member to base
     - `convert<int element>(T*) -> fc::FlexibleClass<int, fc::AdjacentArray<T>>*`
