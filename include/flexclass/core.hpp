@@ -7,7 +7,6 @@
 #include "utility.hpp"
 
 #include <cassert>
-#include <iostream>
 #include <new>
 #include <type_traits>
 
