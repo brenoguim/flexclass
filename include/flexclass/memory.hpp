@@ -43,9 +43,12 @@ constexpr std::uintptr_t findNextAlignedPosition(T* ptr, std::size_t desiredAlig
 }
 
 template <class T, class U>
-inline auto align(U* u)
+constexpr auto align(U* u)
 {
-    return reinterpret_cast<T*>(findNextAlignedPosition(u, alignof(T)));
+    if constexpr (alignof(U) >= alignof(T))
+        return reinterpret_cast<T*>(u);
+    else
+        return reinterpret_cast<T*>(findNextAlignedPosition(u, alignof(T)));
 }
 
 template <class T>
