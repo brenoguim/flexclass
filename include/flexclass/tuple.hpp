@@ -44,33 +44,28 @@ void callDestructors(int constructed, Buf* buf)
         reinterpret_cast<T1*>(buf)->~T1();
 }
 
-template <int i>
-struct number
-{
-    static constexpr auto value = i;
-};
-
 template <class... T>
 struct MemInfo;
 template <class F, class... T>
 struct MemInfo<F, T...> : public MemInfo<T...>
 {
-    static_assert(sizeof(F) == MemInfo<T...>::Size::value);
-    static_assert(alignof(F) == MemInfo<T...>::Align::value);
+    using Base = MemInfo<T...>;
+    static constexpr auto Size = sizeof(F) > Base::Size ? sizeof(F) : Base::Size;
+    static constexpr auto Align = alignof(F) > Base::Align ? alignof(F) : Base::Align;
 };
 
 template <class F>
 struct MemInfo<F>
 {
-    using Size = number<sizeof(F)>;
-    using Align = number<alignof(F)>;
+    static constexpr auto Size = sizeof(F);
+    static constexpr auto Align = alignof(F);
 };
 
 template <>
 struct MemInfo<>
 {
-    using Size = number<1>;
-    using Align = number<1>;
+    static constexpr auto Size = 1;
+    static constexpr auto Align = 1;
 };
 
 template <int I, class... T>
@@ -149,7 +144,7 @@ struct tuple
 
     using MI = MemInfo<T...>;
 
-    std::aligned_storage_t<MI::Size::value, MI::Align::value> elements[Size];
+    std::aligned_storage_t<MI::Size, MI::Align> elements[Size];
 };
 
 namespace detail
@@ -235,6 +230,12 @@ template <class Tuple, class Fn>
 void for_each_constexpr(Fn&& fn)
 {
     for_each_constexpr_impl(fn, static_cast<Tuple*>(nullptr));
+}
+
+template <class... Args>
+auto make_tuple(Args&&... args)
+{
+    return fc::tuple<std::remove_reference_t<Args>...>(std::forward<Args>(args)...);
 }
 
 } // namespace fc

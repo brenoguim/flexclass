@@ -109,19 +109,6 @@ struct ArrayBuilder
             reverseDestroy(m_begin, m_end);
     }
 
-    //! Creates the array of size "sz" in the given buffer.
-    auto buildArray(std::byte* buf, std::size_t sz)
-    {
-        return buildArray(buf, Arg<detail::NoIterator>{sz});
-    }
-
-    //! Creates the array with inputs specified by Arg in the given buffer.
-    template <class InputIt>
-    auto buildArray(std::byte* buf, Arg<InputIt>&& arg)
-    {
-        return buildArray(buf, arg);
-    }
-
     //! Creates the array with inputs specified by Arg in the given buffer.
     template <class InputIt>
     auto buildArray(std::byte* buf, Arg<InputIt>& arg)
@@ -157,14 +144,6 @@ struct ArrayBuilder
     //! Query for the number of bytes necessary to create an T array of size
     //! "sz"
     // "offset" is the offset in an imaginary array starting from 0
-    static std::size_t numRequiredBytes(std::size_t offset, std::size_t sz)
-    {
-        return numRequiredBytes(offset, Arg<detail::NoIterator>{sz});
-    }
-
-    //! Query for the number of bytes necessary to create an T array of size
-    //! "sz"
-    // "offset" is the offset in an imaginary array starting from 0
     template <class InputIt>
     static std::size_t numRequiredBytes(std::size_t offset, const Arg<InputIt>& arg)
     {
@@ -179,16 +158,6 @@ struct ArrayBuilder
 
     T* m_begin{nullptr};
     T* m_end{nullptr};
-};
-
-//! Trait to check if a given type is an ArrayBuilder
-template <class T>
-struct isArrayBuilder : std::false_type
-{
-};
-template <class T>
-struct isArrayBuilder<ArrayBuilder<T>> : std::true_type
-{
 };
 
 template <class T, class = void>
@@ -206,22 +175,13 @@ struct isHandle<T, typename void_<typename T::fc_handle_type>::type> : std::true
  * and convert them either to "Ignore" or "ArrayBuilder"
  */
 template <class T, class = void>
-struct ArrayBuildersConverter
-{
-    using type = Ignore;
-};
+struct ArrayBuildersConverter;
 
 template <class T>
 struct ArrayBuildersConverter<T, typename void_<typename isHandle<T>::enable>::type>
 {
     using type = ArrayBuilder<typename T::fc_handle_type>;
 };
-
-template <class... Args>
-auto make_tuple(Args&&... args)
-{
-    return fc::tuple<std::remove_reference_t<Args>...>(std::forward<Args>(args)...);
-}
 
 template <class... Args>
 auto args(Args&&... args)
