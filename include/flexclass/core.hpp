@@ -229,27 +229,6 @@ auto args(Args&&... args)
     return ::fc::make_tuple(fc::arg(std::forward<Args>(args))...);
 }
 
-template <int I, class Fn, class First, class... T>
-void for_each_constexpr_impl2(Fn&& fn)
-{
-    fn(static_cast<First*>(nullptr), std::integral_constant<int, I>());
-    if constexpr (sizeof...(T) > 0)
-        for_each_constexpr_impl2<I + 1, Fn, T...>(fn);
-}
-
-template <class Fn, class... T>
-void for_each_constexpr_impl(Fn&& fn, fc::tuple<T...>*)
-{
-    if constexpr (sizeof...(T) > 0)
-        for_each_constexpr_impl2<0, Fn, T...>(fn);
-}
-
-template <class Tuple, class Fn>
-void for_each_constexpr(Fn&& fn)
-{
-    for_each_constexpr_impl(fn, static_cast<Tuple*>(nullptr));
-}
-
 template <class Handles>
 struct Handles2ArrayBuilders;
 
