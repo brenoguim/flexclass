@@ -54,13 +54,6 @@ struct MemInfo<F, T...> : public MemInfo<T...>
     static constexpr auto Align = alignof(F) > Base::Align ? alignof(F) : Base::Align;
 };
 
-template <class F>
-struct MemInfo<F>
-{
-    static constexpr auto Size = sizeof(F);
-    static constexpr auto Align = alignof(F);
-};
-
 template <>
 struct MemInfo<>
 {
