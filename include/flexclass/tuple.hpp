@@ -61,17 +61,17 @@ struct MemInfo<>
     static constexpr auto Align = 1;
 };
 
-template <int I, class... T>
-struct TypeAtIdx;
 template <int I, class T, class... Ts>
-struct TypeAtIdx<I, T, Ts...> : TypeAtIdx<I - 1, Ts...>
+constexpr auto typePtrAtIdx()
 {
-};
-template <class T, class... Ts>
-struct TypeAtIdx<0, T, Ts...>
-{
-    using type = T;
-};
+    if constexpr (I == 0)
+        return static_cast<T*>(nullptr);
+    else
+        return typePtrAtIdx<I - 1, Ts...>();
+}
+
+template <int I, class... Ts>
+using TypeAtIdx = std::remove_pointer_t<decltype(typePtrAtIdx<I, Ts...>())>;
 
 template <class... T>
 struct tuple
@@ -127,12 +127,12 @@ struct tuple
     template <int I>
     auto& get()
     {
-        return reinterpret_cast<typename TypeAtIdx<I, T...>::type&>(elements[I]);
+        return reinterpret_cast<TypeAtIdx<I, T...>&>(elements[I]);
     }
     template <int I>
     auto& get() const
     {
-        return reinterpret_cast<const typename TypeAtIdx<I, T...>::type&>(elements[I]);
+        return reinterpret_cast<const TypeAtIdx<I, T...>&>(elements[I]);
     }
 
     using MI = MemInfo<T...>;
