@@ -116,7 +116,7 @@ struct tuple
     ~tuple()
     {
         if constexpr (Size > 0)
-            callDestructors<0, T...>(sizeof...(T), elements);
+            callDestructors<0, T...>(Size, elements);
     }
 
     tuple(const tuple&) = delete;
