@@ -1,5 +1,5 @@
 # Flexclass
-A library for structures with flexible layout. See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
+This is a library for structures with flexible layout. See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
 
 ## Problem statement
 
