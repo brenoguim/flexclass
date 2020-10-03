@@ -1,6 +1,7 @@
 name: Catch2 Performance Regression
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
