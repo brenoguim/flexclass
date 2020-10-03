@@ -1,0 +1,49 @@
+name: Catch2 Performance Regression
+
+on:
+  push:
+    branches:
+      - master
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  benchmark:
+    name: Run C++ benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create Build Environment
+        run: cmake -E make_directory ${{runner.workspace}}/build
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        # Enable performance benchmarks. Note they only make sense in release mode.
+        run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Release -DFLEXCLASS_BUILD_PERF_TESTS=1
+
+      - name: Build
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config $BUILD_TYPE
+
+      - name: RunPerf
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ./tests/performance/graph | tee benchmark_result.txt
+
+      - name: Store benchmark result
+        uses: rhysd/github-action-benchmark@v1
+        with:
+          name: Catch2 Benchmark
+          tool: "catch2"
+          output-file-path: ${{runner.workspace}}/build/benchmark_result.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: "200%"
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: "@brenoguim"
