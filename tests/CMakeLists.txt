@@ -1,6 +1,7 @@
 add_subdirectory(unit)
 add_subdirectory(formatting)
 add_subdirectory(dependency)
+add_subdirectory(preprocessor)
 
 if(FLEXCLASS_BUILD_PERF_TESTS)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
