@@ -7,7 +7,15 @@ project(Flexclass CXX)
 
 option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
 option(FLEXCLASS_BUILD_PERF_TESTS "Whether to build the performance tests" OFF)
-option(FLEXCLASS_BUNDLE "Whether to bundle the library into a single header" ON)
+option(FLEXCLASS_CODE_COVERAGE "Enable coverage reporting" OFF)
+
+# Controls whether the library is bundled into a single header.
+# This is disabled when coverage is enabled because would break the processing of
+# coverage statistics. Coverage requires keeping sources on their original
+# locations in the repository so that we can integrate results with online # platforms.
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(FLEXCLASS_BUNDLE "Whether to bundle the library into a single header"
+                       ON "NOT FLEXCLASS_CODE_COVERAGE" OFF)
 
 set(FLEXCLASS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/flexclass")
 
