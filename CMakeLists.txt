@@ -7,6 +7,7 @@ project(Flexclass CXX)
 
 option(FLEXCLASS_BUILD_TESTS "Whether to build the tests" ON)
 option(FLEXCLASS_BUILD_PERF_TESTS "Whether to build the performance tests" OFF)
+option(FLEXCLASS_BUNDLE "Whether to bundle the library into a single header" ON)
 
 set(FLEXCLASS_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/flexclass")
 

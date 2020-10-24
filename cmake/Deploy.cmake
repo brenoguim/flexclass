@@ -53,7 +53,7 @@ function(bundle _entry _output)
     set(${_output} "${output}" PARENT_SCOPE)
 endfunction()
 
-function(add_header_library _name _entry _license)
+function(add_bundled_header_library _name _entry _license)
     if(NOT IS_ABSOLUTE ${_entry})
         set(_entry "${CMAKE_CURRENT_SOURCE_DIR}/${_entry}")
     endif()
@@ -99,6 +99,15 @@ file(WRITE \"${output}\" \"\${output}\")
     add_dependencies(${_name} ${_name}.bundle)
 endfunction()
 
+function(add_header_library _name _entry _license)
+    if(FLEXCLASS_BUNDLE)
+        add_bundled_header_library(${_name} ${_entry} ${_license})
+    else()
+        add_library(${_name} INTERFACE)
+        target_include_directories(${_name} INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${_name}>)
+    endif()
+endfunction()
+
 include(CMakePackageConfigHelpers)
 
 function(deploy_header_library _lib)
@@ -106,7 +115,13 @@ function(deploy_header_library _lib)
     get_target_property(version ${_lib} INTERFACE_LIB_VERSION)
     get_target_property(dirs ${_lib} INTERFACE_INCLUDE_DIRECTORIES)
 
-    set(include_dest "include")
+    if(FLEXCLASS_BUNDLE)
+        set(include_dest "include")
+    else()
+        # We group the include files inside the flexclass directory as we're
+        # not generating a single header.
+        set(include_dest "include/flexclass")
+    endif()
     set(cmake_dest "lib/cmake/${name}")
     set(cmake_src "${CMAKE_BINARY_DIR}/${name}/${cmake_dest}")
 
