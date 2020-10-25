@@ -64,7 +64,7 @@ The layout of the `Node` is:
                                |       |
                                |       V
 | [std::size_t]   [void*]   [Node**] | [Node*] [Node*] [Node*] ... [Node*]
-|       Id       UserData    Links   |  
+|       Id       UserData    Links   |
 |                                    |
 |                  Node              |
 ```
@@ -79,7 +79,7 @@ fc::AdjacentArray<Node*> links;
 Which would generate the following compact layout:
 ```
 |[std::size_t]   [void*]      []    | [Node*] [Node*] [Node*] ... [Node*]
-|      Id       UserData    Links   |  
+|      Id       UserData    Links   |
 |                                   |
 |                 Node              |
 ```
@@ -137,37 +137,8 @@ Cost:
 
 A shared array implementation needs a reference counter and the data (in this case an array). So it can be modeled as:
 
-```
-template<class T> class SharedArray;
-template<class T>
-class SharedArray<T[]>
-{
-    struct Impl
-    {
-        auto fc_handles() { return fc::make_tuple(&data); }
-        unsigned refCount;
-        fc::Array<T> data;
-    };
-
-  public:
-    /* Interesting public API */
-    static SharedArray make(std::size_t len) { return {fc::make<Impl>(len)(/*num references*/1u)}; }
-
-    decltype(auto) operator[](std::size_t i) { return m_data->data.begin()[i]; }
-    decltype(auto) operator[](std::size_t i) const { return m_data->data.begin()[i]; }
-
-    auto use_count() const { return m_data ? m_data->refCount : 0; }
-
-    /* See full example for special member functions */
-  private:
-    SharedArray(Impl* data) : m_data(data) {}
-    void incr() { if (m_data) m_data->refCount++; }
-    void decr() { if (m_data && m_data->refCount-- == 1) fc::destroy(m_data); }
-    Impl* m_data {nullptr};
-};
-```
-
-[See the full example here](../master/tests/unit/shared_array_example.test.cpp)
+<!-- snippet: shared_array_example -->
+<!-- endSnippet -->
 
 
 ## TODO/Known issues
