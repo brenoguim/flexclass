@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1603819499888,
+  "lastUpdate": 1603819677078,
   "repoUrl": "https://github.com/brenoguim/flexclass",
   "entries": {
     "Catch2 Benchmark": [
@@ -238,6 +238,86 @@ window.BENCHMARK_DATA = {
             "name": "Traverse DAG with fc",
             "value": 2.58508,
             "range": "± 268.411",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "brenorg@gmail.com",
+            "name": "Breno Rodrigues Guimarães",
+            "username": "brenoguim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "707b9651ffd1be38fb1843aeac0cc96762589605",
+          "message": "Merge pull request #23 from eullerborges/master\n\nAdding preprocessed library size check (fixes #12)",
+          "timestamp": "2020-10-27T14:26:19-03:00",
+          "tree_id": "5b336bce57cb9bc346b569abbfbdb40d2f4b1908",
+          "url": "https://github.com/brenoguim/flexclass/commit/707b9651ffd1be38fb1843aeac0cc96762589605"
+        },
+        "date": 1603819674785,
+        "tool": "catch2",
+        "benches": [
+          {
+            "name": "Sum all ids on nofc graph",
+            "value": 28.1666,
+            "range": "± 7.88464",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all ids on withfc graph",
+            "value": 34.1295,
+            "range": "± 20.2548",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on nofc graph",
+            "value": 32.3951,
+            "range": "± 8.33826",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on withfc graph",
+            "value": 4.23984,
+            "range": "± 559.87",
+            "unit": "us",
+            "extra": "100 samples\n9 iterations"
+          },
+          {
+            "name": "Create DAG no fc",
+            "value": 2.49,
+            "range": "± 125.225",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Create DAG with fc",
+            "value": 1.93327,
+            "range": "± 67.1411",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG no fc",
+            "value": 3.76204,
+            "range": "± 242.978",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG with fc",
+            "value": 3.39203,
+            "range": "± 236.381",
             "unit": "ms",
             "extra": "100 samples\n1 iterations"
           }
