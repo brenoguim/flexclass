@@ -11,6 +11,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
+  PREPROCESSED_SIZE_LIMIT: 4500
 
 jobs:
   build:
@@ -50,3 +51,15 @@ jobs:
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: env CTEST_OUTPUT_ON_FAILURE=1 ctest -C $BUILD_TYPE
+
+    - name: Preprocess Library
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Generate the preprocessed file
+      run: make preprocess
+
+    - name: Preprocessed file size check
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Test that the pre-processed file size does not exceed the threshold.
+      run: "[[ $(cat ${{runner.workspace}}/build/tests/preprocessor/flexclass.i | wc -l)  < $PREPROCESSED_SIZE_LIMIT ]] || exit 1"
