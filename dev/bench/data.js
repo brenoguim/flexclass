@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1601754971808,
+  "lastUpdate": 1603819499888,
   "repoUrl": "https://github.com/brenoguim/flexclass",
   "entries": {
     "Catch2 Benchmark": [
@@ -158,6 +158,86 @@ window.BENCHMARK_DATA = {
             "name": "Traverse DAG with fc",
             "value": 2.17011,
             "range": "± 234.876",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "tkcandrade@gmail.com",
+            "name": "Thamara Andrade",
+            "username": "thamara"
+          },
+          "committer": {
+            "email": "brenorg@gmail.com",
+            "name": "Breno Rodrigues Guimarães",
+            "username": "brenoguim"
+          },
+          "distinct": true,
+          "id": "dba3df37dcf358feab76ca465a631693ba41f0f2",
+          "message": "Using mdsnippets to generate shared_array_example in README",
+          "timestamp": "2020-10-27T14:23:26-03:00",
+          "tree_id": "50a2accebcd7af8cba201e6ee8ba04b9bcb13448",
+          "url": "https://github.com/brenoguim/flexclass/commit/dba3df37dcf358feab76ca465a631693ba41f0f2"
+        },
+        "date": 1603819499104,
+        "tool": "catch2",
+        "benches": [
+          {
+            "name": "Sum all ids on nofc graph",
+            "value": 14.6047,
+            "range": "± 4.82585",
+            "unit": "us",
+            "extra": "100 samples\n3 iterations"
+          },
+          {
+            "name": "Sum all ids on withfc graph",
+            "value": 11.5248,
+            "range": "± 2.9376",
+            "unit": "us",
+            "extra": "100 samples\n4 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on nofc graph",
+            "value": 13.8806,
+            "range": "± 3.61366",
+            "unit": "us",
+            "extra": "100 samples\n3 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on withfc graph",
+            "value": 3.87706,
+            "range": "± 706.781",
+            "unit": "us",
+            "extra": "100 samples\n9 iterations"
+          },
+          {
+            "name": "Create DAG no fc",
+            "value": 2.23704,
+            "range": "± 282.682",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Create DAG with fc",
+            "value": 1.80069,
+            "range": "± 169.906",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG no fc",
+            "value": 2.91678,
+            "range": "± 180.405",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG with fc",
+            "value": 2.58508,
+            "range": "± 268.411",
             "unit": "ms",
             "extra": "100 samples\n1 iterations"
           }
