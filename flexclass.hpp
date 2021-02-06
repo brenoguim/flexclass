@@ -128,27 +128,27 @@ auto aligner(const T* t, std::size_t len)
     return aligner_impl<T>{const_cast<T*>(t)}.advance(len);
 }
 template <class T, class Deleter>
-struct unique_ptr : private Deleter
+struct unique_ptr_impl : private Deleter
 {
-    explicit unique_ptr(T* t) : m_t(t) {}
+    explicit unique_ptr_impl(T* t) : m_t(t) {}
     template <class DeleterArg>
-    unique_ptr(T* t, DeleterArg&& darg) : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
+    unique_ptr_impl(T* t, DeleterArg&& darg) : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
     {
     }
-    unique_ptr(const unique_ptr&) = delete;
-    unique_ptr(unique_ptr&& other)
+    unique_ptr_impl(const unique_ptr_impl&) = delete;
+    unique_ptr_impl(unique_ptr_impl&& other)
         : Deleter(std::move(other.get_deleter())), m_t(std::exchange(other.m_t, nullptr))
     {
     }
-    unique_ptr& operator=(const unique_ptr&) = delete;
-    unique_ptr& operator=(unique_ptr&& other)
+    unique_ptr_impl& operator=(const unique_ptr_impl&) = delete;
+    unique_ptr_impl& operator=(unique_ptr_impl&& other)
     {
         using std::swap;
         swap(get_deleter(), other.get_deleter());
         swap(m_t, other.m_t);
         return *this;
     }
-    ~unique_ptr()
+    ~unique_ptr_impl()
     {
         if (m_t)
             get_deleter()(m_t);
@@ -223,29 +223,22 @@ struct MemInfo<F, T...> : public MemInfo<T...>
     static constexpr auto Size = sizeof(F) > Base::Size ? sizeof(F) : Base::Size;
     static constexpr auto Align = alignof(F) > Base::Align ? alignof(F) : Base::Align;
 };
-template <class F>
-struct MemInfo<F>
-{
-    static constexpr auto Size = sizeof(F);
-    static constexpr auto Align = alignof(F);
-};
 template <>
 struct MemInfo<>
 {
     static constexpr auto Size = 1;
     static constexpr auto Align = 1;
 };
-template <int I, class... T>
-struct TypeAtIdx;
 template <int I, class T, class... Ts>
-struct TypeAtIdx<I, T, Ts...> : TypeAtIdx<I - 1, Ts...>
+constexpr auto typePtrAtIdx()
 {
-};
-template <class T, class... Ts>
-struct TypeAtIdx<0, T, Ts...>
-{
-    using type = T;
-};
+    if constexpr (I == 0)
+        return static_cast<T*>(nullptr);
+    else
+        return typePtrAtIdx<I - 1, Ts...>();
+}
+template <int I, class... Ts>
+using TypeAtIdx = std::remove_pointer_t<decltype(typePtrAtIdx<I, Ts...>())>;
 template <class... T>
 struct tuple
 {
@@ -286,7 +279,7 @@ struct tuple
     ~tuple()
     {
         if constexpr (Size > 0)
-            callDestructors<0, T...>(sizeof...(T), elements);
+            callDestructors<0, T...>(Size, elements);
     }
     tuple(const tuple&) = delete;
     tuple(tuple&&) = delete;
@@ -295,12 +288,12 @@ struct tuple
     template <int I>
     auto& get()
     {
-        return reinterpret_cast<typename TypeAtIdx<I, T...>::type&>(elements[I]);
+        return reinterpret_cast<TypeAtIdx<I, T...>&>(elements[I]);
     }
     template <int I>
     auto& get() const
     {
-        return reinterpret_cast<const typename TypeAtIdx<I, T...>::type&>(elements[I]);
+        return reinterpret_cast<const TypeAtIdx<I, T...>&>(elements[I]);
     }
     using MI = MemInfo<T...>;
     std::aligned_storage_t<MI::Size, MI::Align> elements[Size];
@@ -579,7 +572,7 @@ auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
         numBytesForArrays += arrBuilder.numRequiredBytes(sizeof(FC) + numBytesForArrays,
                                                          aArgs.template get<Idx::value>());
     });
-    auto memBuffer = unique_ptr<void, DeleteFn<FC, Alloc>>(
+    auto memBuffer = unique_ptr_impl<void, DeleteFn<FC, Alloc>>(
         alloc.allocate(sizeof(FC) + numBytesForArrays), alloc);
     FC* ret;
     if constexpr (std::is_aggregate_v<FC>)
@@ -657,13 +650,13 @@ struct DestroyFn
 {
     void operator()(T* t) { fc::destroy(t); }
 };
-template <class T>
-using UniquePtr = fc::unique_ptr<T, fc::DestroyFn<T>>;
+template <class T, class Deleter = fc::DestroyFn<T>>
+using unique_ptr = fc::unique_ptr_impl<T, Deleter>;
 template <class FC, class... AArgs>
 auto make_unique(AArgs&&... aArgs)
 {
     return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
-        return fc::UniquePtr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
+        return fc::unique_ptr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
     };
 }
 } // namespace fc
