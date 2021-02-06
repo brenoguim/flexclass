@@ -85,7 +85,7 @@ Which would generate the following compact layout:
 ```
 
 
-`Flexclass` is not limited to one array, so the following declaration is perfectly valid ([godbolt link](godbolt.org/z/4q1M3W)):
+`Flexclass` is not limited to one array, so the following declaration is perfectly valid ([godbolt link](https://godbolt.org/z/4q1M3W)):
 ```
 struct MyType
 {
