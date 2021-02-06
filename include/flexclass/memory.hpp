@@ -94,27 +94,27 @@ auto aligner(const T* t, std::size_t len)
 }
 
 template <class T, class Deleter>
-struct unique_ptr : private Deleter
+struct unique_ptr_impl : private Deleter
 {
-    explicit unique_ptr(T* t) : m_t(t) {}
+    explicit unique_ptr_impl(T* t) : m_t(t) {}
     template <class DeleterArg>
-    unique_ptr(T* t, DeleterArg&& darg) : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
+    unique_ptr_impl(T* t, DeleterArg&& darg) : Deleter(std::forward<DeleterArg>(darg)), m_t(t)
     {
     }
-    unique_ptr(const unique_ptr&) = delete;
-    unique_ptr(unique_ptr&& other)
+    unique_ptr_impl(const unique_ptr_impl&) = delete;
+    unique_ptr_impl(unique_ptr_impl&& other)
         : Deleter(std::move(other.get_deleter())), m_t(std::exchange(other.m_t, nullptr))
     {
     }
-    unique_ptr& operator=(const unique_ptr&) = delete;
-    unique_ptr& operator=(unique_ptr&& other)
+    unique_ptr_impl& operator=(const unique_ptr_impl&) = delete;
+    unique_ptr_impl& operator=(unique_ptr_impl&& other)
     {
         using std::swap;
         swap(get_deleter(), other.get_deleter());
         swap(m_t, other.m_t);
         return *this;
     }
-    ~unique_ptr()
+    ~unique_ptr_impl()
     {
         if (m_t)
             get_deleter()(m_t);
