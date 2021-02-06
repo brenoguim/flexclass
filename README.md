@@ -1,5 +1,5 @@
 # Flexclass
-A library for structures with flexible layout. See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
+A C++17 library to emulate [C flexible array members](https://en.wikipedia.org/wiki/Flexible_array_member). See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
 
 ## Problem statement
 
@@ -64,7 +64,7 @@ The layout of the `Node` is:
                                |       |
                                |       V
 | [std::size_t]   [void*]   [Node**] | [Node*] [Node*] [Node*] ... [Node*]
-|       Id       UserData    Links   |  
+|       Id       UserData    Links   |
 |                                    |
 |                  Node              |
 ```
@@ -79,13 +79,13 @@ fc::AdjacentArray<Node*> links;
 Which would generate the following compact layout:
 ```
 |[std::size_t]   [void*]      []    | [Node*] [Node*] [Node*] ... [Node*]
-|      Id       UserData    Links   |  
+|      Id       UserData    Links   |
 |                                   |
 |                 Node              |
 ```
 
 
-`Flexclass` is not limited to one array, so the following declaration is perfectly valid:
+`Flexclass` is not limited to one array, so the following declaration is perfectly valid ([godbolt link](https://godbolt.org/z/4q1M3W)):
 ```
 struct MyType
 {
@@ -94,7 +94,7 @@ struct MyType
     fc::Array<int> a;
     std::string b;
     fc::Range<string> c;
-    bool;
+    bool d;
 };
 ```
 
@@ -108,7 +108,7 @@ Which will generate the following layout:
      ________________________|____________|_________________                |                             |
     |                        |            |                 V               V                             V
 |[int*] [std::string] [std::string*] [std::string*] [bool]| [int] ... [int] [std::string] ... [std::string]
-|                                                         |
+|  a         b          c (begin)       c (end)       d   |
 |                                                         |
 |                       MyType                            |
 ```
@@ -137,7 +137,9 @@ Cost:
 
 A shared array implementation needs a reference counter and the data (in this case an array). So it can be modeled as:
 
-```
+<!-- snippet: shared_array_example -->
+<a id='snippet-shared_array_example'></a>
+```cpp
 template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
@@ -146,7 +148,9 @@ class SharedArray<T[]>
     {
         auto fc_handles() { return fc::make_tuple(&data); }
         unsigned refCount;
-        fc::Array<T> data;
+        std::conditional_t<std::is_trivially_destructible_v<T>,
+                          fc::Array<T>,
+                          fc::Range<T>> data;
     };
 
   public:
@@ -158,7 +162,12 @@ class SharedArray<T[]>
 
     auto use_count() const { return m_data ? m_data->refCount : 0; }
 
-    /* See full example for special member functions */
+    /* Boilerplate */
+    SharedArray(SharedArray&& other) : m_data(std::exchange(other.m_data, nullptr)) {}
+    SharedArray(const SharedArray& other) { m_data = other.m_data; incr(); }
+    SharedArray& operator=(SharedArray&& other) { decr(); m_data = std::exchange(other.m_data, nullptr); return *this; }
+    SharedArray& operator=(const SharedArray& other) { decr(); m_data = other.m_data; incr(); return *this; }
+    ~SharedArray() { decr(); }
   private:
     SharedArray(Impl* data) : m_data(data) {}
     void incr() { if (m_data) m_data->refCount++; }
@@ -166,8 +175,8 @@ class SharedArray<T[]>
     Impl* m_data {nullptr};
 };
 ```
-
-[See the full example here](../master/tests/unit/shared_array_example.test.cpp)
+<sup><a href='/tests/unit/shared_array_example.test.cpp#L6-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-shared_array_example' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 
 ## TODO/Known issues

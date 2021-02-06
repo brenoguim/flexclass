@@ -3,6 +3,7 @@
 
 #include <atomic>
 
+// begin-snippet: shared_array_example
 template<class T> class SharedArray;
 template<class T>
 class SharedArray<T[]>
@@ -37,6 +38,7 @@ class SharedArray<T[]>
     void decr() { if (m_data && m_data->refCount-- == 1) fc::destroy(m_data); }
     Impl* m_data {nullptr};
 };
+// end-snippet
 
 TEST_CASE( "Exercise the SharedArray", "[shared_array_example]" )
 {

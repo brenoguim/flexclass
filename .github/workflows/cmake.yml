@@ -11,6 +11,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
+  PREPROCESSED_SIZE_LIMIT: 4500
 
 jobs:
   build:
@@ -55,3 +56,16 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       run: "bash <(curl -s https://codecov.io/bash) || exit 1"
+
+    - name: Preprocess Library
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Generate the preprocessed file
+      run: make preprocess
+
+    - name: Preprocessed file size check
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      # Test that the pre-processed file size does not exceed the threshold.
+      run: "[[ $(cat ${{runner.workspace}}/build/tests/preprocessor/flexclass.i | wc -l)  < $PREPROCESSED_SIZE_LIMIT ]] || exit 1"
+

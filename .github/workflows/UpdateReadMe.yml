@@ -1,0 +1,26 @@
+name: UpdateReadMe
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run MarkdownSnippets
+      run: |
+        dotnet tool install --global MarkdownSnippets.Tool
+        mdsnippets ${GITHUB_WORKSPACE} -c InPlaceOverwrite
+      shell: bash
+    - name: Push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git commit -m "Update README examples" -a  || echo "Nothing to commit"
+        remote="https://${GITHUB_ACTOR}:${{secrets.GITHUB_TOKEN}}@github.com/${GITHUB_REPOSITORY}.git"
+        branch="${GITHUB_REF:11}"
+        git push "${remote}" ${branch} || echo "Nothing to push"
+      shell: bash

@@ -1,6 +1,7 @@
 add_subdirectory(unit)
 add_subdirectory(formatting)
 add_subdirectory(dependency)
+add_subdirectory(preprocessor)
 
 add_library(coverage_config INTERFACE)
 # Setup code coverage
