@@ -215,7 +215,7 @@ auto makeWithAllocator(Alloc& alloc, AArgs&& aArgs, ClassArgs&&... cArgs)
                                                          aArgs.template get<Idx::value>());
     });
 
-    auto memBuffer = unique_ptr<void, DeleteFn<FC, Alloc>>(
+    auto memBuffer = unique_ptr_impl<void, DeleteFn<FC, Alloc>>(
         alloc.allocate(sizeof(FC) + numBytesForArrays), alloc);
 
     FC* ret;
@@ -308,14 +308,14 @@ struct DestroyFn
     void operator()(T* t) { fc::destroy(t); }
 };
 
-template <class T>
-using UniquePtr = fc::unique_ptr<T, fc::DestroyFn<T>>;
+template <class T, class Deleter = fc::DestroyFn<T>>
+using unique_ptr = fc::unique_ptr_impl<T, Deleter>;
 
 template <class FC, class... AArgs>
 auto make_unique(AArgs&&... aArgs)
 {
     return [a = fc::args(aArgs...)](auto&&... cArgs) mutable {
-        return fc::UniquePtr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
+        return fc::unique_ptr<FC>(fc::makeInternal<FC>(a, std::forward<decltype(cArgs)>(cArgs)...));
     };
 }
 

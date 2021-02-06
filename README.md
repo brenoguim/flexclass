@@ -1,5 +1,5 @@
 # Flexclass
-A library for structures with flexible layout. See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
+A C++17 library to emulate [C flexible array members](https://en.wikipedia.org/wiki/Flexible_array_member). See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
 
 ## Problem statement
 
@@ -85,7 +85,7 @@ Which would generate the following compact layout:
 ```
 
 
-`Flexclass` is not limited to one array, so the following declaration is perfectly valid:
+`Flexclass` is not limited to one array, so the following declaration is perfectly valid ([godbolt link](https://godbolt.org/z/4q1M3W)):
 ```
 struct MyType
 {
@@ -94,7 +94,7 @@ struct MyType
     fc::Array<int> a;
     std::string b;
     fc::Range<string> c;
-    bool;
+    bool d;
 };
 ```
 
@@ -108,7 +108,7 @@ Which will generate the following layout:
      ________________________|____________|_________________                |                             |
     |                        |            |                 V               V                             V
 |[int*] [std::string] [std::string*] [std::string*] [bool]| [int] ... [int] [std::string] ... [std::string]
-|                                                         |
+|  a         b          c (begin)       c (end)       d   |
 |                                                         |
 |                       MyType                            |
 ```
