@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1612653443607,
+  "lastUpdate": 1612654769814,
   "repoUrl": "https://github.com/brenoguim/flexclass",
   "entries": {
     "Catch2 Benchmark": [
@@ -398,6 +398,86 @@ window.BENCHMARK_DATA = {
             "name": "Traverse DAG with fc",
             "value": 2.81261,
             "range": "± 36.9928",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "brenorg@gmail.com",
+            "name": "Breno Rodrigues Guimarães",
+            "username": "brenoguim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "743f6abc0c5daa4662030239ecd9e6472aa0c768",
+          "message": "Merge pull request #24 from eullerborges/coverage\n\nAdding codecov.io support",
+          "timestamp": "2021-02-06T20:38:00-03:00",
+          "tree_id": "a7c01cb6018faebb9d44a045acf4cb797991e391",
+          "url": "https://github.com/brenoguim/flexclass/commit/743f6abc0c5daa4662030239ecd9e6472aa0c768"
+        },
+        "date": 1612654769323,
+        "tool": "catch2",
+        "benches": [
+          {
+            "name": "Sum all ids on nofc graph",
+            "value": 13.7087,
+            "range": "± 2.29774",
+            "unit": "us",
+            "extra": "100 samples\n3 iterations"
+          },
+          {
+            "name": "Sum all ids on withfc graph",
+            "value": 11.8408,
+            "range": "± 2.07208",
+            "unit": "us",
+            "extra": "100 samples\n4 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on nofc graph",
+            "value": 13.8747,
+            "range": "± 1.65144",
+            "unit": "us",
+            "extra": "100 samples\n3 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on withfc graph",
+            "value": 4.49012,
+            "range": "± 76.4059",
+            "unit": "us",
+            "extra": "100 samples\n9 iterations"
+          },
+          {
+            "name": "Create DAG no fc",
+            "value": 2.52839,
+            "range": "± 6.66902",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Create DAG with fc",
+            "value": 1.92472,
+            "range": "± 33.1447",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG no fc",
+            "value": 3.00254,
+            "range": "± 41.5208",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG with fc",
+            "value": 2.80842,
+            "range": "± 33.2379",
             "unit": "ms",
             "extra": "100 samples\n1 iterations"
           }
