@@ -57,7 +57,7 @@ namespace withfc
     struct Dag
     {
         using N = Node;
-        std::vector<fc::UniquePtr<Node>> nodes;
+        std::vector<fc::unique_ptr<Node>> nodes;
     };
 }
 
