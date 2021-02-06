@@ -94,7 +94,7 @@ struct MyType
     fc::Array<int> a;
     std::string b;
     fc::Range<string> c;
-    bool;
+    bool d;
 };
 ```
 
@@ -108,7 +108,7 @@ Which will generate the following layout:
      ________________________|____________|_________________                |                             |
     |                        |            |                 V               V                             V
 |[int*] [std::string] [std::string*] [std::string*] [bool]| [int] ... [int] [std::string] ... [std::string]
-|                                                         |
+|  a         b          c (begin)       c (end)       d   |
 |                                                         |
 |                       MyType                            |
 ```
