@@ -19,7 +19,7 @@ target_include_directories(test_infra
 function(make_test_lib _target_name _suffix)
     set(target_name ${_target_name}${_suffix})
     add_executable(${target_name} ${_target_name}.test.cpp)
-    target_link_libraries(${target_name} PUBLIC flexclass test_infra)
+    target_link_libraries(${target_name} PUBLIC flexclass test_infra coverage_config)
     set_target_properties(${target_name} PROPERTIES INTERFACE_COMPILE_FEATURES cxx_std_17)
     target_include_directories(${target_name} PUBLIC ../../external/catch2/)
     add_test(
