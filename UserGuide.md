@@ -34,14 +34,14 @@ So we have the following layout:
 The `flexclass` aware type has dynamic size, so it cannot be allocated on the stack. To allocate one on the heap, use the `fc::make_unique` method:
 
 ```
-auto m = fc::make_unique<MyType>(...)(...);
+fc::unique_ptr<MyType> m = fc::make_unique<MyType>(...)(...);
 ```
 
 This returns a RAII enabled object, which will cleanup after itself when it's destroyed.
 
 If you prefer to manually manage this object, use `fc::make` and `fc::destroy`:
 ```
-auto* m = fc::make<MyType>(...)(...);
+MyType* m = fc::make<MyType>(...)(...);
 fc::destroy(m);
 ```
 
