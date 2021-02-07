@@ -1,3 +1,4 @@
+
 # Flexclass
 A C++17 library to emulate [C flexible array members](https://en.wikipedia.org/wiki/Flexible_array_member). See the [User Guide](../master/UserGuide.md) for a complete walkthrough.
 
