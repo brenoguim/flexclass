@@ -171,3 +171,34 @@ fc::destroy(fclass, alloc);
 
 `Flexclass` is well behaved with respect to lifetimes and exceptions. That means all objects created by it will be destroyed in the reverse order, including the objects in arrays.
 If at any point during the construction of the FlexibleClass an exception is thrown, all objects that were fully created will be destroyed in the reverse order of construction.
+
+
+# Interaction with other language features
+
+To understand how this library interacts with other language features, it is necessary to understand what happens under the hood.
+
+When invoking the constructor via `fc::make<T>`, the following happens:
+
+1. Collect array types: `T` is inspected to collect the return result of the method `fc_handles`. This is expected to be, for example, a `fc::tuple<Handle<A>*, Handle<B>*>`.
+2. Calculate the size of the buffer: Using the size and alignment of `T`, `A` and `B`, plus the element count of the array of `A` and `B`, it is possible to calculate the number of bytes required to store the whole struct.
+3. Call the constructor of `T`.
+4. Call the constructor for each `A` object in the array, and the same for `B`.
+5. Inform the handles the location of their arrays: Use `fc_handles` method to obtain all handles, and set the memory position in which the array was created. So we get `Handle<A>*` and call `->setLocation` passing the memory positions of where the `A` objects were created.
+
+The important aspect to be observed here is that the handle member objects in `T` are only initialized *after* `T` is initialized. So, during the constructor of `T` the member handles shall not be used.
+
+If we think of these arrays as a way to dynamically extend the functionality of the class, we can draw a parallel with virtual functions and how we cannot call them in the constructor of non-final classes.
+
+## Flexclass inheriting from a "regular" class
+## "Regular" class inheriting from a Flexclass
+## Flexclass inherigint from Flexclass
+
+
+
+
+
+
+
+
+
+
