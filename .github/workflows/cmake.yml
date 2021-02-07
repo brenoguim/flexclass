@@ -55,7 +55,7 @@ jobs:
       run: env CTEST_OUTPUT_ON_FAILURE=1 ctest -C $BUILD_TYPE
 
     - name: Upload Coverage Stats
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}
       shell: bash
       run: bash <(curl -s https://codecov.io/bash ) || echo "Codecov did not collect coverage reports"
       env:
