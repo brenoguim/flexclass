@@ -55,7 +55,7 @@ jobs:
     - name: Upload Coverage Stats
       working-directory: ${{runner.workspace}}
       shell: bash
-      run: bash test_script || echo "Codecov did not collect coverage reports"
+      run: bash $GITHUB_WORKSPACE/test_script || echo "Codecov did not collect coverage reports"
       env:
         CODECOV_TOKEN: '3d47f6da-bc2a-474c-affb-657ec4b2d747'
 
