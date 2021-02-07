@@ -1,4 +1,6 @@
 codecov:
   max_report_age: off
+fixes:
+  - "flexclass/::"
 ignore:
   - "external"
