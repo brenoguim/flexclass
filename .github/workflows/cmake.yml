@@ -53,9 +53,11 @@ jobs:
       run: env CTEST_OUTPUT_ON_FAILURE=1 ctest -C $BUILD_TYPE
 
     - name: Upload Coverage Stats
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}
       shell: bash
-      run: "bash <(curl -s https://codecov.io/bash) || exit 1"
+      run: bash <(curl -s https://codecov.io/bash ) || echo "Codecov did not collect coverage reports"
+      env:
+        CODECOV_TOKEN: '3d47f6da-bc2a-474c-affb-657ec4b2d747'
 
     - name: Preprocess Library
       working-directory: ${{runner.workspace}}/build
