@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1612661640112,
+  "lastUpdate": 1612663558270,
   "repoUrl": "https://github.com/brenoguim/flexclass",
   "entries": {
     "Catch2 Benchmark": [
@@ -638,6 +638,86 @@ window.BENCHMARK_DATA = {
             "name": "Traverse DAG with fc",
             "value": 2.39521,
             "range": "± 248.404",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "brenorg@gmail.com",
+            "name": "Breno Rodrigues Guimarães",
+            "username": "brenoguim"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "82ff3d047022c87c693b29309ccf5706580600d2",
+          "message": "Adjust coverage configuration\n\n* Copy codecov.yml to build folder otherwise codecov doesn't find it. Weird.\r\n* Remap names so files are found. Might be doing something wrong there, but now it works.",
+          "timestamp": "2021-02-06T23:04:32-03:00",
+          "tree_id": "af4c9aebe04f8525ebac32511a22d49900aaf62f",
+          "url": "https://github.com/brenoguim/flexclass/commit/82ff3d047022c87c693b29309ccf5706580600d2"
+        },
+        "date": 1612663557782,
+        "tool": "catch2",
+        "benches": [
+          {
+            "name": "Sum all ids on nofc graph",
+            "value": 29.2297,
+            "range": "± 6.63817",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all ids on withfc graph",
+            "value": 31.1608,
+            "range": "± 9.43852",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on nofc graph",
+            "value": 27.9522,
+            "range": "± 5.86554",
+            "unit": "us",
+            "extra": "100 samples\n2 iterations"
+          },
+          {
+            "name": "Sum all link ptrs on withfc graph",
+            "value": 4.41337,
+            "range": "± 1.6356",
+            "unit": "us",
+            "extra": "100 samples\n9 iterations"
+          },
+          {
+            "name": "Create DAG no fc",
+            "value": 2.34786,
+            "range": "± 145.503",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Create DAG with fc",
+            "value": 1.96317,
+            "range": "± 146.025",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG no fc",
+            "value": 3.74145,
+            "range": "± 283.77",
+            "unit": "ms",
+            "extra": "100 samples\n1 iterations"
+          },
+          {
+            "name": "Traverse DAG with fc",
+            "value": 3.17787,
+            "range": "± 152.178",
             "unit": "ms",
             "extra": "100 samples\n1 iterations"
           }
